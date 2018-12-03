@@ -1,0 +1,60 @@
+﻿@{
+    Layout = "";
+}
+@model Nop.Plugin.Payments.eWay.Models.PaymentInfoModel
+@using Nop.Web.Framework;
+<div>
+    <table width="100%" cellspacing="2" cellpadding="1" border="0">
+        <tr>
+            <td>
+                @Html.LabelFor(model => model.CreditCardTypes, false):
+            </td>
+            <td>
+                @Html.DropDownListFor(model => model.CreditCardType, Model.CreditCardTypes, new { @class = "dropdownlists" })
+            </td>
+        </tr>
+        <tr>
+            <td>
+                @Html.LabelFor(model => model.CardholderName, false):
+            </td>
+            <td>
+                <div id="eway-secure-field-name" style="height: 40px !important;"></div>
+                <span id="name-error" class="message-error"></span>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                @Html.LabelFor(model => model.CardNumber, false):
+            </td>
+            <td>
+                <div id="eway-secure-field-card" style="height: 40px !important;"></div>
+                <span id="card-error" class="message-error"></span>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                @Html.LabelFor(model => model.ExpireMonth, false):
+            </td>
+            <td>
+                <div id="eway-secure-field-expiry" style="height: 40px !important;"></div>
+                <span id="expiry-error" class="message-error"></span>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                @Html.LabelFor(model => model.CardCode, false):
+            </td>
+            <td>
+                <div id="eway-secure-field-cvn" style="height: 40px !important;"></div>
+                <span id="cvn-error" class="message-error"></span>
+            </td>
+        </tr>
+        <input name="securefieldcode" type="hidden" id="securefieldcode" />
+        <script type="text/javascript">
+            eWAY.setupSecureField(nameFieldConfig, secureFieldCallback);
+            eWAY.setupSecureField(cardFieldConfig, secureFieldCallback);
+            eWAY.setupSecureField(expiryFieldConfig, secureFieldCallback);
+            eWAY.setupSecureField(cvnFieldConfig, secureFieldCallback);
+        </script>
+    </table>
+</div>
