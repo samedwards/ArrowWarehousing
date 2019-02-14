@@ -1,0 +1,132 @@
+﻿@model ConfigureModel
+@using panoRazzi.SeoOptimizer.Models;
+
+@{
+    Layout = "_ConfigurePlugin";
+}
+
+@await Component.InvokeAsync("StoreScopeConfiguration")
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    <div class="panel-group">
+        <div class="panel panel-default">
+            <div class="panel-body">
+                <div class="form-group">
+                    <div class="col-md-3">&nbsp;</div>
+                    <div class="col-md-9">
+                        <p>
+                            Thank you for downloading & using this plugin! If you have any feedbacks on the
+                            plugin, please feel free to e-mail them to
+                            <a href="mailto:wooncherk@pronopcommerce.com">wooncherk@pronopcommerce.com</a>.
+                        </p>
+                        <p>
+                            If you need nopCommerce plugin or theme development service, please feel free
+                            to discuss with me by sending your request to
+                            <a href="mailto:wooncherk@pronopcommerce.com">wooncherk@pronopcommerce.com</a>.
+                        </p>
+                        <p>
+                            Last but not least, please visit <a href="http://www.pronopcommerce.com">
+                                Pro nopCommerce
+                            </a> to get more tips & trick on nopCommerce!
+                        </p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="Domain_OverrideForStore" asp-input="Domain" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="Domain" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="Domain" />
+                        <span asp-validation-for="Domain"></span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="ProductKey_OverrideForStore" asp-input="ProductKey" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="ProductKey" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="ProductKey" />
+                        <span asp-validation-for="ProductKey"></span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="BlockedUrls_OverrideForStore" asp-input="BlockedUrls" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="BlockedUrls" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-textarea asp-for="BlockedUrls"></nop-textarea>
+                        <span asp-validation-for="BlockedUrls"></span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="HomePageMetaTitle_OverrideForStore" asp-input="HomePageMetaTitle" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="HomePageMetaTitle" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-textarea asp-for="HomePageMetaTitle"></nop-textarea>
+                        <span asp-validation-for="HomePageMetaTitle"></span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="HomePageMetaDescription_OverrideForStore" asp-input="HomePageMetaDescription" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="HomePageMetaDescription" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-textarea asp-for="HomePageMetaDescription"></nop-textarea>
+                        <span asp-validation-for="HomePageMetaDescription"></span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-md-3">
+                        <nop-label asp-for="OptimizeImages" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="OptimizeImages" />
+                        <span asp-validation-for="OptimizeImages"></span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-md-3">
+                        <nop-label asp-for="OptimizeImageFolders" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-textarea asp-for="OptimizeImageFolders"></nop-textarea>
+                        <span asp-validation-for="OptimizeImageFolders"></span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-md-3">
+                        <nop-label asp-for="UseTinyPng" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="UseTinyPng" />
+                        <span asp-validation-for="UseTinyPng"></span> <small>@T("panoRazzi.SeoOptimizer.TinyPngExplanation")</small>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-md-3">
+                        <nop-label asp-for="TinyPngKey" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="TinyPngKey" />
+                        <span asp-validation-for="TinyPngKey"></span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-md-3">
+                        &nbsp;
+                    </div>
+                    <div class="col-md-9">
+                        <input type="submit" name="save" class="t-button" value="@T("Admin.Common.Save")" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
@@ -7,6 +6,7 @@ using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Localization;
 using Nop.Core.Domain.Media;
 using Nop.Core.Domain.Orders;
+using Nop.Core.Infrastructure;
 using Nop.Services.Customers;
 using Nop.Services.Localization;
 using Nop.Services.Media;
@@ -23,17 +23,18 @@ namespace Nop.Web.Controllers
     {
         #region Fields
 
-        private readonly IReturnRequestModelFactory _returnRequestModelFactory;
-        private readonly IReturnRequestService _returnRequestService;
-        private readonly IOrderService _orderService;
-        private readonly IWorkContext _workContext;
-        private readonly IStoreContext _storeContext;
-        private readonly IOrderProcessingService _orderProcessingService;
-        private readonly ILocalizationService _localizationService;
         private readonly ICustomerService _customerService;
-        private readonly IWorkflowMessageService _workflowMessageService;
         private readonly ICustomNumberFormatter _customNumberFormatter;
         private readonly IDownloadService _downloadService;
+        private readonly ILocalizationService _localizationService;
+        private readonly INopFileProvider _fileProvider;
+        private readonly IOrderProcessingService _orderProcessingService;
+        private readonly IOrderService _orderService;
+        private readonly IReturnRequestModelFactory _returnRequestModelFactory;
+        private readonly IReturnRequestService _returnRequestService;
+        private readonly IStoreContext _storeContext;
+        private readonly IWorkContext _workContext;
+        private readonly IWorkflowMessageService _workflowMessageService;
         private readonly LocalizationSettings _localizationSettings;
         private readonly OrderSettings _orderSettings;
 
@@ -41,31 +42,33 @@ namespace Nop.Web.Controllers
 
         #region Ctor
 
-        public ReturnRequestController(IReturnRequestModelFactory returnRequestModelFactory,
-            IReturnRequestService returnRequestService,
-            IOrderService orderService, 
-            IWorkContext workContext, 
-            IStoreContext storeContext,
-            IOrderProcessingService orderProcessingService,
-            ILocalizationService localizationService,
-            ICustomerService customerService,
-            IWorkflowMessageService workflowMessageService,
+        public ReturnRequestController(ICustomerService customerService,
             ICustomNumberFormatter customNumberFormatter,
             IDownloadService downloadService,
+            ILocalizationService localizationService,
+            INopFileProvider fileProvider,
+            IOrderProcessingService orderProcessingService,
+            IOrderService orderService,
+            IReturnRequestModelFactory returnRequestModelFactory,
+            IReturnRequestService returnRequestService,
+            IStoreContext storeContext,
+            IWorkContext workContext,
+            IWorkflowMessageService workflowMessageService,
             LocalizationSettings localizationSettings,
             OrderSettings orderSettings)
         {
-            this._returnRequestModelFactory = returnRequestModelFactory;
-            this._returnRequestService = returnRequestService;
-            this._orderService = orderService;
-            this._workContext = workContext;
-            this._storeContext = storeContext;
-            this._orderProcessingService = orderProcessingService;
-            this._localizationService = localizationService;
             this._customerService = customerService;
-            this._workflowMessageService = workflowMessageService;
             this._customNumberFormatter = customNumberFormatter;
             this._downloadService = downloadService;
+            this._localizationService = localizationService;
+            this._fileProvider = fileProvider;
+            this._orderProcessingService = orderProcessingService;
+            this._orderService = orderService;
+            this._returnRequestModelFactory = returnRequestModelFactory;
+            this._returnRequestService = returnRequestService;
+            this._storeContext = storeContext;
+            this._workContext = workContext;
+            this._workflowMessageService = workflowMessageService;
             this._localizationSettings = localizationSettings;
             this._orderSettings = orderSettings;
         }
@@ -136,7 +139,7 @@ namespace Nop.Web.Controllers
                 {
                     var rrr = _returnRequestService.GetReturnRequestReasonById(model.ReturnRequestReasonId);
                     var rra = _returnRequestService.GetReturnRequestActionById(model.ReturnRequestActionId);
-                    
+
                     var rr = new ReturnRequest
                     {
                         CustomNumber = "",
@@ -144,8 +147,8 @@ namespace Nop.Web.Controllers
                         OrderItemId = orderItem.Id,
                         Quantity = quantity,
                         CustomerId = _workContext.CurrentCustomer.Id,
-                        ReasonForReturn = rrr != null ? rrr.GetLocalized(x => x.Name) : "not available",
-                        RequestedAction = rra != null ? rra.GetLocalized(x => x.Name) : "not available",
+                        ReasonForReturn = rrr != null ? _localizationService.GetLocalized(rrr, x => x.Name) : "not available",
+                        RequestedAction = rra != null ? _localizationService.GetLocalized(rra, x => x.Name) : "not available",
                         CustomerComments = model.Comments,
                         UploadedFileId = downloadId,
                         StaffNotes = string.Empty,
@@ -175,7 +178,7 @@ namespace Nop.Web.Controllers
 
             return View(model);
         }
-        
+
         [HttpPost]
         public virtual IActionResult UploadFileReturnRequest()
         {
@@ -199,18 +202,18 @@ namespace Nop.Web.Controllers
                 });
             }
 
-            var fileBinary = httpPostedFile.GetDownloadBits();
+            var fileBinary = _downloadService.GetDownloadBits(httpPostedFile);
 
             var qqFileNameParameter = "qqfilename";
             var fileName = httpPostedFile.FileName;
             if (string.IsNullOrEmpty(fileName) && Request.Form.ContainsKey(qqFileNameParameter))
                 fileName = Request.Form[qqFileNameParameter].ToString();
             //remove path (passed in IE)
-            fileName = Path.GetFileName(fileName);
+            fileName = _fileProvider.GetFileName(fileName);
 
             var contentType = httpPostedFile.ContentType;
 
-            var fileExtension = Path.GetExtension(fileName);
+            var fileExtension = _fileProvider.GetFileExtension(fileName);
             if (!string.IsNullOrEmpty(fileExtension))
                 fileExtension = fileExtension.ToLowerInvariant();
 
@@ -238,7 +241,7 @@ namespace Nop.Web.Controllers
                 DownloadBinary = fileBinary,
                 ContentType = contentType,
                 //we store filename without extension for downloads
-                Filename = Path.GetFileNameWithoutExtension(fileName),
+                Filename = _fileProvider.GetFileNameWithoutExtension(fileName),
                 Extension = fileExtension,
                 IsNew = true
             };
@@ -250,11 +253,11 @@ namespace Nop.Web.Controllers
             {
                 success = true,
                 message = _localizationService.GetResource("ShoppingCart.FileUploaded"),
-                downloadUrl = Url.Action("GetFileUpload", "Download", new {downloadId = download.DownloadGuid}),
+                downloadUrl = Url.Action("GetFileUpload", "Download", new { downloadId = download.DownloadGuid }),
                 downloadGuid = download.DownloadGuid,
             });
         }
-        
+
         #endregion
     }
 }

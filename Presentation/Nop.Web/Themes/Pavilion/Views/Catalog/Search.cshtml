@@ -15,10 +15,10 @@
     }
 }
 
-<script type="text/javascript" asp-location="Footer">
+<script asp-location="Footer">
     $(document).ready(function () {
 
-        $("#@Html.IdFor(model => model.adv)").click(toggleAdvancedSearch);
+        $("#@Html.IdFor(model => model.adv)").on('click', toggleAdvancedSearch);
 
         toggleAdvancedSearch();
     });
@@ -106,7 +106,7 @@
         {
             @await Html.PartialAsync("_CatalogSelectors", Model.PagingFilteringContext)
         }
-        @await Component.InvokeAsync("Widget", new { widgetZone = "productsearch_page_before_results" })
+        @await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.ProductSearchPageBeforeResults })
         <div class="search-results">
             @if (!String.IsNullOrEmpty(Model.Warning))
             {
@@ -144,7 +144,7 @@
                 </div>
             }
         </div>
-        @await Component.InvokeAsync("Widget", new { widgetZone = "productsearch_page_after_results" })
+        @await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.ProductSearchPageAfterResults })
     </div>
 </div>
 

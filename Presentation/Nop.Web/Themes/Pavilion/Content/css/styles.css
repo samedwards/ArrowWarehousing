@@ -1340,7 +1340,9 @@ label, label + * {
 .breadcrumb li {
 	display: inline-block;
 }
-.breadcrumb li > * {
+.breadcrumb a,
+.breadcrumb strong,
+.breadcrumb .delimiter {
 	display: inline-block;
 	min-height: 32px; /*IE fix*/
 	margin: 0 3px;
@@ -1348,27 +1350,27 @@ label, label + * {
 	line-height: 32px;
 	vertical-align: middle;
 }
+.breadcrumb strong {
+	font-weight: normal;
+	color: #f74258;
+}
+.breadcrumb .delimiter {
+	width: 15px;
+	background: url('../img/pointer-grey.png') center no-repeat;
+	font-size: 0;
+}
 .breadcrumb li:first-child a {
 	width: 20px;
 	background: url('../img/breadcrumb.png') center no-repeat;
 	font-size: 0;
 }
-.breadcrumb span.delimiter {
-	width: 15px;
-	background: url('../img/pointer-grey.png') center no-repeat;
+.breadcrumb li:first-child > span:first-child { /*this is on product page*/
+	display: inline-block;
+	margin: 0 2px;
 	font-size: 0;
-}
-.breadcrumb strong {
-	font-weight: normal;
-	color: #f74258;
 }
 .breadcrumb li:first-child > span a { /*this is on product page*/
-	display: block;
-	width: 20px;
-	height: 32px;
 	margin: 0 !important;
-	background: url('../img/breadcrumb.png') center no-repeat;
-	font-size: 0;
 }
 
 .category-description,
@@ -2071,6 +2073,13 @@ label, label + * {
 .variant-overview .add-to-cart-button:hover {
 	outline-color: #f74258;
 }
+.overview .pre-order-availability-date,
+.variant-overview .pre-order-availability-date {
+	position: absolute;
+	right: 0;
+	left: 0;
+	margin: 5px auto 0;
+}
 
 .overview-buttons {
 	font-size: 0;
@@ -2636,6 +2645,9 @@ label, label + * {
 	padding: 0 5px;
 	cursor: pointer;
 }
+.review-type-rating-ext .review-title {
+	display: none;
+}
 .product-review-helpfulness .vote:hover {
 	color: #f74258;
 }
@@ -2686,6 +2698,12 @@ label, label + * {
 }
 .write-review .review-rating li.last {
 	color: #4fbb41;
+}
+.write-review .review-rating + div {
+	margin: 10px 0 0;
+}
+.write-review .tooltip-text {
+	display: none;
 }
 .write-review .buttons {
 	margin: 0 0 10px;
@@ -3232,7 +3250,7 @@ label, label + * {
 	float: none !important;
 }
 .external-authentication .facebook-btn {
-	width: 212px;
+	width: 220px;
 	height: 35px;
 	margin-top: -15px;
 	background: url('../img/fb-login.png') center no-repeat !important;
@@ -3398,6 +3416,13 @@ label, label + * {
 .block-account-navigation .customer-reviews a:before {
 	background-position: center -520px;
 }
+.block-account-navigation .customer-gdpr a:before {
+	background-position: center -572px;
+}
+.block-account-navigation
+.customer-check-gift-card-balance a:before {
+	background-position: center -624px;
+}
 
 .account-page .page-title {
 	border-width: 0;
@@ -3468,6 +3493,15 @@ label, label + * {
 	display: block;
 	margin: 10px 0 -5px;
 	font-size: 13px;
+}
+.account-page .accept-consent {
+	margin: 0;
+}
+.account-page .accept-consent label {
+	display: inline-block;
+	width: auto;
+	margin: 0 0 0 5px;
+	font-weight: normal;
 }
 
 .account-page ul.info,
@@ -3591,12 +3625,17 @@ label, label + * {
 	border: none;
 }
 
-.change-password-page .inputs {
+.change-password-page .inputs,
+.check-gift-card-balance-page .inputs {
 	margin: 20px 0 0;
 }
-.change-password-page .buttons {
+.change-password-page .buttons,
+.check-gift-card-balance-page .buttons {
 	border: none;
 	padding-top: 0 !important;
+}
+.check-gift-card-balance-page .captcha-box {
+	margin: 20px 0 0;
 }
 
 .avatar-page .message-error {

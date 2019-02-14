@@ -1,19 +1,17 @@
 using System;
 using System.Collections.Generic;
-using eWAY.Rapid.Enums;
-using eWAY.Rapid.Models;
+using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Nop.Core;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Payments;
 using Nop.Core.Plugins;
+using Nop.Plugin.Payments.eWay.Models;
+using Nop.Plugin.Payments.eWay.Validators;
 using Nop.Services.Configuration;
 using Nop.Services.Customers;
 using Nop.Services.Localization;
-using Nop.Services.Logging;
 using Nop.Services.Payments;
-using StackExchange.Profiling.Helpers;
-using CapturePaymentRequest = Nop.Services.Payments.CapturePaymentRequest;
 
 namespace Nop.Plugin.Payments.eWay
 {
@@ -24,11 +22,15 @@ namespace Nop.Plugin.Payments.eWay
     {
         #region Fields
 
+        private const string APPROVED_RESPONSE = "00";
+        private const string HONOUR_RESPONSE = "08";
+
         private readonly ICustomerService _customerService;
         private readonly eWayPaymentSettings _eWayPaymentSettings;
         private readonly ISettingService _settingService;
+        private readonly IStoreContext _storeContext;
+        private readonly ILocalizationService _localizationService;
         private readonly IWebHelper _webHelper;
-        private readonly ILogger _logger;
 
         #endregion
 
@@ -37,14 +39,16 @@ namespace Nop.Plugin.Payments.eWay
         public eWayPaymentProcessor(ICustomerService customerService, 
             eWayPaymentSettings eWayPaymentSettings,
             ISettingService settingService, 
-            IWebHelper webHelper, 
-            ILogger logger)
+            IStoreContext storeContext,
+            ILocalizationService localizationService, 
+            IWebHelper webHelper)
         {
             this._customerService = customerService;
             this._eWayPaymentSettings = eWayPaymentSettings;
             this._settingService = settingService;
+            this._storeContext = storeContext;
+            this._localizationService = localizationService;
             this._webHelper = webHelper;
-            _logger = logger;
         }
 
         #endregion
@@ -55,8 +59,11 @@ namespace Nop.Plugin.Payments.eWay
         /// Gets eWay URL
         /// </summary>
         /// <returns></returns>
-        private string GetRapidEndpoint()
-            => _eWayPaymentSettings.UseSandbox ? "Sandbox" : "Production";
+        private string GeteWayUrl()
+        {
+            return _eWayPaymentSettings.UseSandbox ? "https://www.eway.com.au/gateway_cvn/xmltest/TestPage.asp" :
+                "https://www.eway.com.au/gateway_cvn/xmlpayment.asp";
+        }
 
         #endregion
 
@@ -73,56 +80,59 @@ namespace Nop.Plugin.Payments.eWay
 
             var eWaygateway = new GatewayConnector();
 
-            var customer = _customerService.GetCustomerById(processPaymentRequest.CustomerId);
-            var billingAddress = customer.BillingAddress;
-
-            var eWayRequest = new Transaction
+            var eWayRequest = new GatewayRequest
             {
-                Customer = new Customer
-                {
-                    CompanyName = billingAddress.Company,
-                    FirstName = billingAddress.FirstName,
-                    LastName = billingAddress.LastName,
-                    Email = billingAddress.Email,
-                    Address = new Address
-                    {
-                        Street1 = billingAddress.Address1,
-                        Street2 = billingAddress.Address2,
-                        City = billingAddress.City,
-                        Country = billingAddress.Country?.TwoLetterIsoCode?.ToLower(),
-                        PostalCode = billingAddress.ZipPostalCode
-                    },
-                    Reference = customer.CustomerGuid.ToString()
-                },
-                PaymentDetails = new PaymentDetails
-                {
-                    CurrencyCode = "NZD",
-                    InvoiceReference = processPaymentRequest.OrderGuid.ToString(),
-                    InvoiceNumber = processPaymentRequest.OrderGuid.ToString(),
-                    TotalAmount = Convert.ToInt32(processPaymentRequest.OrderTotal * 100)
-                },
-                TransactionType = TransactionTypes.Purchase,
-                SecuredCardData = processPaymentRequest.CreditCardName
+                EwayCustomerID = _eWayPaymentSettings.CustomerId,
+                CardNumber = processPaymentRequest.CreditCardNumber,
+                CardExpiryMonth = processPaymentRequest.CreditCardExpireMonth.ToString("D2"),
+                CardExpiryYear = processPaymentRequest.CreditCardExpireYear.ToString(),
+                CardHolderName = processPaymentRequest.CreditCardName,
+                InvoiceAmount = Convert.ToInt32(processPaymentRequest.OrderTotal * 100)
             };
 
-            // Do the payment
-            eWaygateway.RapidEndpoint = GetRapidEndpoint();
+            //Integer
+
+            var customer = _customerService.GetCustomerById(processPaymentRequest.CustomerId);
+            var billingAddress = customer.BillingAddress;
+            eWayRequest.PurchaserFirstName = billingAddress.FirstName;
+            eWayRequest.PurchaserLastName = billingAddress.LastName;
+            eWayRequest.PurchaserEmailAddress = billingAddress.Email;
+            eWayRequest.PurchaserAddress = billingAddress.Address1;
+            eWayRequest.PurchaserPostalCode = billingAddress.ZipPostalCode;
+            eWayRequest.InvoiceReference = processPaymentRequest.OrderGuid.ToString();
+            eWayRequest.InvoiceDescription = _storeContext.CurrentStore.Name + ". Order #" + processPaymentRequest.OrderGuid;
+            eWayRequest.TransactionNumber = processPaymentRequest.OrderGuid.ToString();
+            eWayRequest.CVN = processPaymentRequest.CreditCardCvv2;
+            eWayRequest.EwayOption1 = string.Empty;
+            eWayRequest.EwayOption2 = string.Empty;
+            eWayRequest.EwayOption3 = string.Empty;
+
+            // Do the payment, send XML doc containing information gathered
+            eWaygateway.Uri = GeteWayUrl();
             var eWayResponse = eWaygateway.ProcessRequest(eWayRequest);
-            if (eWayResponse == null ||
-                eWayResponse.Errors != null ||
-                !(eWayResponse.TransactionStatus?.Status ?? false) ||
-                !eWayResponse.TransactionStatus.ProcessingDetails.ResponseMessage.StartsWith("A"))
+            if (eWayResponse != null)
+            {
+                // Payment succeeded get values returned
+                if (eWayResponse.Status && (eWayResponse.Error.StartsWith(APPROVED_RESPONSE) || eWayResponse.Error.StartsWith(HONOUR_RESPONSE)))
+                {
+                    result.AuthorizationTransactionCode = eWayResponse.AuthorisationCode;
+                    result.AuthorizationTransactionResult = eWayResponse.InvoiceReference;
+                    result.AuthorizationTransactionId = eWayResponse.TransactionNumber;
+                    result.NewPaymentStatus = PaymentStatus.Paid;
+                    //processPaymentResult.AuthorizationDate = DateTime.UtcNow;
+                }
+                else
+                {
+                    result.AddError("An invalid response was recieved from the payment gateway." + eWayResponse.Error);
+                    //full error: eWAYRequest.ToXml().ToString()
+                }
+            }
+            else
             {
                 // invalid response recieved from server.
-                result.AddError("An error occurred while processing your order.  Please check your Credit Card details and try again.");
-                _logger.Error($"Error recieved from eWay: [Error: {eWayResponse?.Errors?.ToJson()}] [ResponseMessage: {eWayResponse?.TransactionStatus?.ToJson()}]");
-
-                return result;
+                result.AddError("An invalid response was recieved from the payment gateway.");
+                //full error: eWAYRequest.ToXml().ToString()
             }
-
-            _logger.Information($"Successful eWay payment with result [{eWayResponse.TransactionStatus?.ToJson()}]");
-
-            result.NewPaymentStatus = PaymentStatus.Paid;
 
             return result;
         }
@@ -248,7 +258,21 @@ namespace Nop.Plugin.Payments.eWay
         /// <returns>List of validating errors</returns>
         public IList<string> ValidatePaymentForm(IFormCollection form)
         {
-            return new List<string>();
+            var warnings = new List<string>();
+
+            //validate
+            var validator = new PaymentInfoValidator(_localizationService);
+            var model = new PaymentInfoModel()
+            {
+                CardholderName = form["CardholderName"],
+                CardNumber = form["CardNumber"],
+                CardCode = form["CardCode"],
+            };
+            var validationResult = validator.Validate(model);
+            if (validationResult.IsValid) return warnings;
+
+            warnings.AddRange(validationResult.Errors.Select(error => error.ErrorMessage));
+            return warnings;
         }
 
         /// <summary>
@@ -258,10 +282,17 @@ namespace Nop.Plugin.Payments.eWay
         /// <returns>Payment info holder</returns>
         public ProcessPaymentRequest GetPaymentInfo(IFormCollection form)
         {
-            return new ProcessPaymentRequest
+            var paymentInfo = new ProcessPaymentRequest
             {
-                CreditCardName = form["Securefieldcode"]
+                CreditCardType = form["CreditCardType"],
+                CreditCardName = form["CardholderName"],
+                CreditCardNumber = form["CardNumber"],
+                CreditCardExpireMonth = int.Parse(form["ExpireMonth"]),
+                CreditCardExpireYear = int.Parse(form["ExpireYear"]),
+                CreditCardCvv2 = form["CardCode"]
             };
+
+            return paymentInfo;
         }
 
         /// <summary>
@@ -269,7 +300,7 @@ namespace Nop.Plugin.Payments.eWay
         /// </summary>
         public override void Install()
         {
-            var settings = new eWayPaymentSettings
+            var settings = new eWayPaymentSettings()
             {
                 UseSandbox = true,
                 CustomerId = string.Empty,
@@ -278,12 +309,13 @@ namespace Nop.Plugin.Payments.eWay
             _settingService.SaveSetting(settings);
 
             //locales
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.eWay.UseSandbox", "Use sandbox");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.eWay.UseSandbox.Hint", "Use sandbox?");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.eWay.CustomerId", "Customer ID");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.eWay.CustomerId.Hint", "Enter customer ID.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.eWay.AdditionalFee", "Additional fee");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.eWay.AdditionalFee.Hint", "Enter additional fee to charge your customers.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.eWay.UseSandbox", "Use sandbox");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.eWay.UseSandbox.Hint", "Use sandbox?");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.eWay.CustomerId", "Customer ID");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.eWay.CustomerId.Hint", "Enter customer ID.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.eWay.AdditionalFee", "Additional fee");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.eWay.AdditionalFee.Hint", "Enter additional fee to charge your customers.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.eWay.PaymentMethodDescription", "Pay by credit / debit card");
             
             base.Install();
         }
@@ -294,13 +326,14 @@ namespace Nop.Plugin.Payments.eWay
         public override void Uninstall()
         {
             //locales
-            this.DeletePluginLocaleResource("Plugins.Payments.eWay.UseSandbox");
-            this.DeletePluginLocaleResource("Plugins.Payments.eWay.UseSandbox.Hint");
-            this.DeletePluginLocaleResource("Plugins.Payments.eWay.CustomerId");
-            this.DeletePluginLocaleResource("Plugins.Payments.eWay.CustomerId.Hint");
-            this.DeletePluginLocaleResource("Plugins.Payments.eWay.AdditionalFee");
-            this.DeletePluginLocaleResource("Plugins.Payments.eWay.AdditionalFee.Hint");
-
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.eWay.UseSandbox");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.eWay.UseSandbox.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.eWay.CustomerId");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.eWay.CustomerId.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.eWay.AdditionalFee");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.eWay.AdditionalFee.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.eWay.PaymentMethodDescription");
+            
             base.Uninstall();
         }
 
@@ -308,9 +341,9 @@ namespace Nop.Plugin.Payments.eWay
         /// Gets a view component for displaying plugin in public store ("payment info" checkout step)
         /// </summary>
         /// <param name="viewComponentName">View component name</param>
-        public void GetPublicViewComponent(out string viewComponentName)
+        public string GetPublicViewComponentName()
         {
-            viewComponentName = "PaymenteWay";
+            return "PaymenteWay";
         }
 
         #endregion
@@ -320,42 +353,84 @@ namespace Nop.Plugin.Payments.eWay
         /// <summary>
         /// Gets a value indicating whether capture is supported
         /// </summary>
-        public bool SupportCapture => false;
+        public bool SupportCapture
+        {
+            get
+            {
+                return false;
+            }
+        }
 
         /// <summary>
         /// Gets a value indicating whether partial refund is supported
         /// </summary>
-        public bool SupportPartiallyRefund => false;
+        public bool SupportPartiallyRefund
+        {
+            get
+            {
+                return false;
+            }
+        }
 
         /// <summary>
         /// Gets a value indicating whether refund is supported
         /// </summary>
-        public bool SupportRefund => false;
+        public bool SupportRefund
+        {
+            get
+            {
+                return false;
+            }
+        }
 
         /// <summary>
         /// Gets a value indicating whether void is supported
         /// </summary>
-        public bool SupportVoid => false;
+        public bool SupportVoid
+        {
+            get
+            {
+                return false;
+            }
+        }
 
         /// <summary>
         /// Gets a recurring payment type of payment method
         /// </summary>
-        public RecurringPaymentType RecurringPaymentType => RecurringPaymentType.NotSupported;
+        public RecurringPaymentType RecurringPaymentType
+        {
+            get
+            {
+                return RecurringPaymentType.NotSupported;
+            }
+        }
 
         /// <summary>
         /// Gets a payment method type
         /// </summary>
-        public PaymentMethodType PaymentMethodType => PaymentMethodType.Standard;
+        public PaymentMethodType PaymentMethodType
+        {
+            get
+            {
+                return PaymentMethodType.Standard;
+            }
+        }
 
         /// <summary>
         /// Gets a value indicating whether we should display a payment information page for this plugin
         /// </summary>
-        public bool SkipPaymentInfo => false;
+        public bool SkipPaymentInfo
+        {
+            get { return false; }
+        }
 
         /// <summary>
         /// Gets a payment method description that will be displayed on checkout pages in the public store
         /// </summary>
-        public string PaymentMethodDescription => string.Empty;
+        public string PaymentMethodDescription
+        {
+            get { return _localizationService.GetResource("Plugins.Payments.eWay.PaymentMethodDescription"); }
+        }
 
         #endregion
     }

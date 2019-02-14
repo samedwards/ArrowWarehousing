@@ -1,6 +1,5 @@
 ﻿using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using Nop.Core.Domain.Catalog;
 using Nop.Services.Catalog;
 using Nop.Services.Security;
 using Nop.Services.Stores;
@@ -33,7 +32,7 @@ namespace Nop.Web.Components
             //ACL and store mapping
             products = products.Where(p => _aclService.Authorize(p) && _storeMappingService.Authorize(p)).ToList();
             //availability dates
-            products = products.Where(p => p.IsAvailable()).ToList();
+            products = products.Where(p => _productService.ProductIsAvailable(p)).ToList();
 
             if (!products.Any())
                 return Content("");

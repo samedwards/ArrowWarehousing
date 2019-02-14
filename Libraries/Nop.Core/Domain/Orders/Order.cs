@@ -1,8 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
-using System.Linq;
 using Nop.Core.Domain.Common;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Discounts;
@@ -17,56 +14,11 @@ namespace Nop.Core.Domain.Orders
     /// </summary>
     public partial class Order : BaseEntity
     {
-
         private ICollection<DiscountUsageHistory> _discountUsageHistory;
         private ICollection<GiftCardUsageHistory> _giftCardUsageHistory;
         private ICollection<OrderNote> _orderNotes;
         private ICollection<OrderItem> _orderItems;
         private ICollection<Shipment> _shipments;
-
-        #region Utilities
-
-        /// <summary>
-        /// Parse tax rates
-        /// </summary>
-        /// <param name="taxRatesStr"></param>
-        /// <returns></returns>
-        protected virtual SortedDictionary<decimal, decimal> ParseTaxRates(string taxRatesStr)
-        {
-            var taxRatesDictionary = new SortedDictionary<decimal, decimal>();
-            if (string.IsNullOrEmpty(taxRatesStr))
-                return taxRatesDictionary;
-
-            var lines = taxRatesStr.Split(new [] { ';' }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var line in lines)
-            {
-                if (string.IsNullOrEmpty(line.Trim()))
-                    continue;
-
-                var taxes = line.Split(':');
-                if (taxes.Length == 2)
-                {
-                    try
-                    {
-                        var taxRate = decimal.Parse(taxes[0].Trim(), CultureInfo.InvariantCulture);
-                        var taxValue = decimal.Parse(taxes[1].Trim(), CultureInfo.InvariantCulture);
-                        taxRatesDictionary.Add(taxRate, taxValue);
-                    }
-                    catch (Exception exc)
-                    {
-                        Debug.WriteLine(exc.ToString());
-                    }
-                }
-            }
-
-            //add at least one tax rate (0%)
-            if (!taxRatesDictionary.Any())
-                taxRatesDictionary.Add(decimal.Zero, decimal.Zero);
-
-            return taxRatesDictionary;
-        }
-
-        #endregion
 
         #region Properties
 
@@ -146,32 +98,32 @@ namespace Nop.Core.Domain.Orders
         public string VatNumber { get; set; }
 
         /// <summary>
-        /// Gets or sets the order subtotal (incl tax)
+        /// Gets or sets the order subtotal (include tax)
         /// </summary>
         public decimal OrderSubtotalInclTax { get; set; }
 
         /// <summary>
-        /// Gets or sets the order subtotal (excl tax)
+        /// Gets or sets the order subtotal (exclude tax)
         /// </summary>
         public decimal OrderSubtotalExclTax { get; set; }
 
         /// <summary>
-        /// Gets or sets the order subtotal discount (incl tax)
+        /// Gets or sets the order subtotal discount (include tax)
         /// </summary>
         public decimal OrderSubTotalDiscountInclTax { get; set; }
 
         /// <summary>
-        /// Gets or sets the order subtotal discount (excl tax)
+        /// Gets or sets the order subtotal discount (exclude tax)
         /// </summary>
         public decimal OrderSubTotalDiscountExclTax { get; set; }
 
         /// <summary>
-        /// Gets or sets the order shipping (incl tax)
+        /// Gets or sets the order shipping (include tax)
         /// </summary>
         public decimal OrderShippingInclTax { get; set; }
 
         /// <summary>
-        /// Gets or sets the order shipping (excl tax)
+        /// Gets or sets the order shipping (exclude tax)
         /// </summary>
         public decimal OrderShippingExclTax { get; set; }
 
@@ -181,7 +133,7 @@ namespace Nop.Core.Domain.Orders
         public decimal PaymentMethodAdditionalFeeInclTax { get; set; }
 
         /// <summary>
-        /// Gets or sets the payment method additional fee (excl tax)
+        /// Gets or sets the payment method additional fee (exclude tax)
         /// </summary>
         public decimal PaymentMethodAdditionalFeeExclTax { get; set; }
 
@@ -214,7 +166,7 @@ namespace Nop.Core.Domain.Orders
         /// Gets or sets the reward points history entry identifier when reward points were earned (gained) for placing this order
         /// </summary>
         public int? RewardPointsHistoryEntryId { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the checkout attribute description
         /// </summary>
@@ -314,7 +266,7 @@ namespace Nop.Core.Domain.Orders
         /// Gets or sets the paid date and time
         /// </summary>
         public DateTime? PaidDateUtc { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the shipping method
         /// </summary>
@@ -458,11 +410,6 @@ namespace Nop.Core.Domain.Orders
             get => (TaxDisplayType)CustomerTaxDisplayTypeId;
             set => CustomerTaxDisplayTypeId = (int)value;
         }
-
-        /// <summary>
-        /// Gets the applied tax rates
-        /// </summary>
-        public SortedDictionary<decimal, decimal> TaxRatesDictionary => ParseTaxRates(TaxRates);
 
         #endregion
     }

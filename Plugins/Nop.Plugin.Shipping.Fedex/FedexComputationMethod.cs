@@ -6,12 +6,12 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using FedexRate;
 using Nop.Core;
 using Nop.Core.Domain.Directory;
 using Nop.Core.Domain.Shipping;
 using Nop.Core.Plugins;
 using Nop.Plugin.Shipping.Fedex.Domain;
-using Nop.Plugin.Shipping.Fedex.RateServiceWebReference;
 using Nop.Services.Configuration;
 using Nop.Services.Directory;
 using Nop.Services.Discounts;
@@ -45,6 +45,7 @@ namespace Nop.Plugin.Shipping.Fedex
         private readonly IOrderTotalCalculationService _orderTotalCalculationService;
         private readonly ICurrencyService _currencyService;
         private readonly CurrencySettings _currencySettings;
+        private readonly ILocalizationService _localizationService;
         private readonly ILogger _logger;
         private readonly IWebHelper _webHelper;
 
@@ -55,6 +56,7 @@ namespace Nop.Plugin.Shipping.Fedex
             IShippingService shippingService, ISettingService settingService,
             FedexSettings fedexSettings, IOrderTotalCalculationService orderTotalCalculationService,
             ICurrencyService currencyService, CurrencySettings currencySettings,
+            ILocalizationService localizationService,
             ILogger logger,
             IWebHelper webHelper)
         {
@@ -65,6 +67,7 @@ namespace Nop.Plugin.Shipping.Fedex
             this._orderTotalCalculationService = orderTotalCalculationService;
             this._currencyService = currencyService;
             this._currencySettings = currencySettings;
+            this._localizationService = localizationService;
             this._logger = logger;
             this._webHelper = webHelper;
         }
@@ -77,35 +80,35 @@ namespace Nop.Plugin.Shipping.Fedex
             // Build the RateRequest
             var request = new RateRequest
             {
-                WebAuthenticationDetail = new RateServiceWebReference.WebAuthenticationDetail
+                WebAuthenticationDetail = new FedexRate.WebAuthenticationDetail
                 {
-                    UserCredential = new RateServiceWebReference.WebAuthenticationCredential
+                    UserCredential = new FedexRate.WebAuthenticationCredential
                     {
                         Key = _fedexSettings.Key,
                         Password = _fedexSettings.Password
                     }
                 },
 
-                ClientDetail = new RateServiceWebReference.ClientDetail
+                ClientDetail = new FedexRate.ClientDetail
                 {
                     AccountNumber = _fedexSettings.AccountNumber,
                     MeterNumber = _fedexSettings.MeterNumber
                 },
 
-                TransactionDetail = new RateServiceWebReference.TransactionDetail
+                TransactionDetail = new FedexRate.TransactionDetail
                 {
                     CustomerTransactionId = "***Rate Available Services v16 Request - nopCommerce***" // This is a reference field for the customer.  Any value can be used and will be provided in the response.
                 },
 
-                Version = new RateServiceWebReference.VersionId(), // WSDL version information, value is automatically set from wsdl            
+                Version = new FedexRate.VersionId(), // WSDL version information, value is automatically set from wsdl            
 
                 ReturnTransitAndCommit = true,
                 ReturnTransitAndCommitSpecified = true,
-                CarrierCodes = new RateServiceWebReference.CarrierCodeType[2]
+                CarrierCodes = new FedexRate.CarrierCodeType[2]
             };
             // Insert the Carriers you would like to see the rates for
-            request.CarrierCodes[0] = RateServiceWebReference.CarrierCodeType.FDXE;
-            request.CarrierCodes[1] = RateServiceWebReference.CarrierCodeType.FDXG;
+            request.CarrierCodes[0] = FedexRate.CarrierCodeType.FDXE;
+            request.CarrierCodes[1] = FedexRate.CarrierCodeType.FDXG;
 
             //TODO we should use getShippingOptionRequest.Items.GetQuantity() method to get subtotal
             _orderTotalCalculationService.GetShoppingCartSubTotal(
@@ -159,22 +162,22 @@ namespace Nop.Plugin.Shipping.Fedex
             switch (_fedexSettings.DropoffType)
             {
                 case DropoffType.BusinessServiceCenter:
-                    request.RequestedShipment.DropoffType = RateServiceWebReference.DropoffType.BUSINESS_SERVICE_CENTER;
+                    request.RequestedShipment.DropoffType = FedexRate.DropoffType.BUSINESS_SERVICE_CENTER;
                     break;
                 case DropoffType.DropBox:
-                    request.RequestedShipment.DropoffType = RateServiceWebReference.DropoffType.DROP_BOX;
+                    request.RequestedShipment.DropoffType = FedexRate.DropoffType.DROP_BOX;
                     break;
                 case DropoffType.RegularPickup:
-                    request.RequestedShipment.DropoffType = RateServiceWebReference.DropoffType.REGULAR_PICKUP;
+                    request.RequestedShipment.DropoffType = FedexRate.DropoffType.REGULAR_PICKUP;
                     break;
                 case DropoffType.RequestCourier:
-                    request.RequestedShipment.DropoffType = RateServiceWebReference.DropoffType.REQUEST_COURIER;
+                    request.RequestedShipment.DropoffType = FedexRate.DropoffType.REQUEST_COURIER;
                     break;
                 case DropoffType.Station:
-                    request.RequestedShipment.DropoffType = RateServiceWebReference.DropoffType.STATION;
+                    request.RequestedShipment.DropoffType = FedexRate.DropoffType.STATION;
                     break;
                 default:
-                    request.RequestedShipment.DropoffType = RateServiceWebReference.DropoffType.BUSINESS_SERVICE_CENTER;
+                    request.RequestedShipment.DropoffType = FedexRate.DropoffType.BUSINESS_SERVICE_CENTER;
                     break;
             }
             request.RequestedShipment.TotalInsuredValue = new Money
@@ -247,7 +250,7 @@ namespace Nop.Plugin.Shipping.Fedex
         {
             request.RequestedShipment.Recipient = new Party
             {
-                Address = new RateServiceWebReference.Address()
+                Address = new FedexRate.Address()
             };
             if (_fedexSettings.UseResidentialRates)
             {
@@ -273,7 +276,7 @@ namespace Nop.Plugin.Shipping.Fedex
         {
             request.RequestedShipment.Shipper = new Party
             {
-                Address = new RateServiceWebReference.Address()
+                Address = new FedexRate.Address()
             };
 
             if (getShippingOptionRequest.CountryFrom == null)
@@ -327,20 +330,20 @@ namespace Nop.Plugin.Shipping.Fedex
                 {
                     SequenceNumber = "1", // package sequence number
                     GroupPackageCount = "1",
-                    Weight = new RateServiceWebReference.Weight
+                    Weight = new FedexRate.Weight
                     {
-                        Units = RateServiceWebReference.WeightUnits.LB,
+                        Units = FedexRate.WeightUnits.LB,
                         UnitsSpecified = true,
                         Value = weight,
                         ValueSpecified = true
                     }, // package weight
 
-                    Dimensions = new RateServiceWebReference.Dimensions
+                    Dimensions = new FedexRate.Dimensions
                     {
                         Length = _fedexSettings.PassDimensions ? length.ToString() : "0",
                         Width = _fedexSettings.PassDimensions ? width.ToString() : "0",
                         Height = _fedexSettings.PassDimensions ? height.ToString() : "0",
-                        Units = RateServiceWebReference.LinearUnits.IN,
+                        Units = FedexRate.LinearUnits.IN,
                         UnitsSpecified = true
                     }, // package dimensions
                     InsuredValue = new Money
@@ -391,20 +394,20 @@ namespace Nop.Plugin.Shipping.Fedex
                     {
                         SequenceNumber = (i + 1).ToString(), // package sequence number            
                         GroupPackageCount = "1",
-                        Weight = new RateServiceWebReference.Weight
+                        Weight = new FedexRate.Weight
                         {
-                            Units = RateServiceWebReference.WeightUnits.LB,
+                            Units = FedexRate.WeightUnits.LB,
                             UnitsSpecified = true,
                             Value = weight2,
                             ValueSpecified = true
                         }, // package weight
 
-                        Dimensions = new RateServiceWebReference.Dimensions
+                        Dimensions = new FedexRate.Dimensions
                         {
                             Length = _fedexSettings.PassDimensions ? length2.ToString() : "0",
                             Width = _fedexSettings.PassDimensions ? width2.ToString() : "0",
                             Height = _fedexSettings.PassDimensions ? height2.ToString() : "0",
-                            Units = RateServiceWebReference.LinearUnits.IN,
+                            Units = FedexRate.LinearUnits.IN,
                             UnitsSpecified = true
                         }, // package dimensions
                         InsuredValue = new Money
@@ -460,20 +463,20 @@ namespace Nop.Plugin.Shipping.Fedex
                     {
                         SequenceNumber = (i + 1).ToString(), // package sequence number                     
                         GroupPackageCount = "1",
-                        Weight = new RateServiceWebReference.Weight
+                        Weight = new FedexRate.Weight
                         {
-                            Units = RateServiceWebReference.WeightUnits.LB,
+                            Units = FedexRate.WeightUnits.LB,
                             UnitsSpecified = true,
                             Value = weight,
                             ValueSpecified = true
                         }, // package weight
 
-                        Dimensions = new RateServiceWebReference.Dimensions
+                        Dimensions = new FedexRate.Dimensions
                         {
                             Length = length.ToString(),
                             Height = height.ToString(),
                             Width = width.ToString(),
-                            Units = RateServiceWebReference.LinearUnits.IN,
+                            Units = FedexRate.LinearUnits.IN,
                             UnitsSpecified = true
                         }, // package dimensions
 
@@ -626,20 +629,20 @@ namespace Nop.Plugin.Shipping.Fedex
                 {
                     SequenceNumber = (i + 1).ToString(), // package sequence number          
                     GroupPackageCount = "1",
-                    Weight = new RateServiceWebReference.Weight
+                    Weight = new FedexRate.Weight
                     {
-                        Units = RateServiceWebReference.WeightUnits.LB,
+                        Units = FedexRate.WeightUnits.LB,
                         UnitsSpecified = true,
                         Value = weightPerPackage,
                         ValueSpecified = true
                     }, // package weight
 
-                    Dimensions = new RateServiceWebReference.Dimensions
+                    Dimensions = new FedexRate.Dimensions
                     {
                         Length = length.ToString(),
                         Height = height.ToString(),
                         Width = width.ToString(),
-                        Units = RateServiceWebReference.LinearUnits.IN,
+                        Units = FedexRate.LinearUnits.IN,
                         UnitsSpecified = true
                     }, // package dimensions
                     InsuredValue = new Money
@@ -863,18 +866,15 @@ namespace Nop.Plugin.Shipping.Fedex
             }
 
             var request = CreateRateRequest(getShippingOptionRequest, out Currency requestedShipmentCurrency);
-            var service = new RateService
-            {
-                Url = _fedexSettings.Url
-            }; // Initialize the service
+            var service = new RatePortTypeClient(RatePortTypeClient.EndpointConfiguration.RateServicePort, _fedexSettings.Url);
             try
             {
                 // This is the call to the web service passing in a RateRequest and returning a RateReply
-                var reply = service.getRates(request); // Service call
+                var reply = service.getRatesAsync(request).Result.RateReply; // Service call
 
-                if (reply.HighestSeverity == RateServiceWebReference.NotificationSeverityType.SUCCESS || 
-                    reply.HighestSeverity == RateServiceWebReference.NotificationSeverityType.NOTE || 
-                    reply.HighestSeverity == RateServiceWebReference.NotificationSeverityType.WARNING) // check if the call was successful
+                if (reply.HighestSeverity == FedexRate.NotificationSeverityType.SUCCESS || 
+                    reply.HighestSeverity == FedexRate.NotificationSeverityType.NOTE || 
+                    reply.HighestSeverity == FedexRate.NotificationSeverityType.WARNING) // check if the call was successful
                 {
                     if (reply.RateReplyDetails != null)
                     {
@@ -946,41 +946,41 @@ namespace Nop.Plugin.Shipping.Fedex
             _settingService.SaveSetting(settings);
 
             //locales
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Url", "URL");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Url.Hint", "Specify FedEx URL.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Key", "Key");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Key.Hint", "Specify FedEx key.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Password", "Password");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Password.Hint", "Specify FedEx password.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.AccountNumber", "Account number");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.AccountNumber.Hint", "Specify FedEx account number.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.MeterNumber", "Meter number");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.MeterNumber.Hint", "Specify FedEx meter number.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.UseResidentialRates", "Use residential rates");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.UseResidentialRates.Hint", "Check to use residential rates.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.ApplyDiscounts", "Use discounted rates");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.ApplyDiscounts.Hint", "Check to use discounted rates (instead of list rates).");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.AdditionalHandlingCharge", "Additional handling charge");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.AdditionalHandlingCharge.Hint", "Enter additional handling fee to charge your customers.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.CarrierServices", "Carrier Services Offered");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.CarrierServices.Hint", "Select the services you want to offer to customers.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PassDimensions", "Pass dimensions");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PassDimensions.Hint", "Check if you want to pass package dimensions when requesting rates.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PackingType", "Packing type");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PackingType.Hint", "Choose preferred packing type.");
-            this.AddOrUpdatePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.PackingType.PackByDimensions", "Pack by dimensions");
-            this.AddOrUpdatePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.PackingType.PackByOneItemPerPackage", "Pack by one item per package");
-            this.AddOrUpdatePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.PackingType.PackByVolume", "Pack by volume");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PackingPackageVolume", "Package volume");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PackingPackageVolume.Hint", "Enter your package volume.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.DropoffType", "Dropoff Type");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.DropoffType.Hint", "Choose preferred dropoff type.");
-            this.AddOrUpdatePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.DropoffType.BusinessServiceCenter", "Business service center");
-            this.AddOrUpdatePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.DropoffType.DropBox", "Drop box");
-            this.AddOrUpdatePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.DropoffType.RegularPickup", "Regular pickup");
-            this.AddOrUpdatePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.DropoffType.RequestCourier", "Request courier");
-            this.AddOrUpdatePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.DropoffType.Station", "Station");
-            
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Url", "URL");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Url.Hint", "Specify FedEx URL.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Key", "Key");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Key.Hint", "Specify FedEx key.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Password", "Password");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Password.Hint", "Specify FedEx password.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.AccountNumber", "Account number");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.AccountNumber.Hint", "Specify FedEx account number.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.MeterNumber", "Meter number");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.MeterNumber.Hint", "Specify FedEx meter number.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.UseResidentialRates", "Use residential rates");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.UseResidentialRates.Hint", "Check to use residential rates.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.ApplyDiscounts", "Use discounted rates");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.ApplyDiscounts.Hint", "Check to use discounted rates (instead of list rates).");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.AdditionalHandlingCharge", "Additional handling charge");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.AdditionalHandlingCharge.Hint", "Enter additional handling fee to charge your customers.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.CarrierServices", "Carrier Services Offered");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.CarrierServices.Hint", "Select the services you want to offer to customers.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PassDimensions", "Pass dimensions");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PassDimensions.Hint", "Check if you want to pass package dimensions when requesting rates.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PackingType", "Packing type");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PackingType.Hint", "Choose preferred packing type.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.PackingType.PackByDimensions", "Pack by dimensions");
+            _localizationService.AddOrUpdatePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.PackingType.PackByOneItemPerPackage", "Pack by one item per package");
+            _localizationService.AddOrUpdatePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.PackingType.PackByVolume", "Pack by volume");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PackingPackageVolume", "Package volume");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PackingPackageVolume.Hint", "Enter your package volume.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.DropoffType", "Dropoff Type");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Shipping.Fedex.Fields.DropoffType.Hint", "Choose preferred dropoff type.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.DropoffType.BusinessServiceCenter", "Business service center");
+            _localizationService.AddOrUpdatePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.DropoffType.DropBox", "Drop box");
+            _localizationService.AddOrUpdatePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.DropoffType.RegularPickup", "Regular pickup");
+            _localizationService.AddOrUpdatePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.DropoffType.RequestCourier", "Request courier");
+            _localizationService.AddOrUpdatePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.DropoffType.Station", "Station");
+
             base.Install();
         }
 
@@ -993,40 +993,40 @@ namespace Nop.Plugin.Shipping.Fedex
             _settingService.DeleteSetting<FedexSettings>();
 
             //locales
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Url");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Url.Hint");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Key");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Key.Hint");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Password");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Password.Hint");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.AccountNumber");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.AccountNumber.Hint");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.MeterNumber");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.MeterNumber.Hint");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.UseResidentialRates");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.UseResidentialRates.Hint");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.ApplyDiscounts");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.ApplyDiscounts.Hint");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.AdditionalHandlingCharge");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.AdditionalHandlingCharge.Hint");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.CarrierServices");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.CarrierServices.Hint");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PassDimensions");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PassDimensions.Hint");
-            this.DeletePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.PackingType.PackByDimensions");
-            this.DeletePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.PackingType.PackByOneItemPerPackage");
-            this.DeletePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.PackingType.PackByVolume");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PackingType");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PackingType.Hint");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PackingPackageVolume");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PackingPackageVolume.Hint");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.DropoffType");
-            this.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.DropoffType.Hint");
-            this.DeletePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.DropoffType.BusinessServiceCenter");
-            this.DeletePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.DropoffType.DropBox");
-            this.DeletePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.DropoffType.RegularPickup");
-            this.DeletePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.DropoffType.RequestCourier");
-            this.DeletePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.DropoffType.Station");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Url");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Url.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Key");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Key.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Password");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.Password.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.AccountNumber");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.AccountNumber.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.MeterNumber");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.MeterNumber.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.UseResidentialRates");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.UseResidentialRates.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.ApplyDiscounts");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.ApplyDiscounts.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.AdditionalHandlingCharge");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.AdditionalHandlingCharge.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.CarrierServices");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.CarrierServices.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PassDimensions");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PassDimensions.Hint");
+            _localizationService.DeletePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.PackingType.PackByDimensions");
+            _localizationService.DeletePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.PackingType.PackByOneItemPerPackage");
+            _localizationService.DeletePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.PackingType.PackByVolume");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PackingType");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PackingType.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PackingPackageVolume");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.PackingPackageVolume.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.DropoffType");
+            _localizationService.DeletePluginLocaleResource("Plugins.Shipping.Fedex.Fields.DropoffType.Hint");
+            _localizationService.DeletePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.DropoffType.BusinessServiceCenter");
+            _localizationService.DeletePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.DropoffType.DropBox");
+            _localizationService.DeletePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.DropoffType.RegularPickup");
+            _localizationService.DeletePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.DropoffType.RequestCourier");
+            _localizationService.DeletePluginLocaleResource("Enums.Nop.Plugin.Shipping.Fedex.DropoffType.Station");
 
             base.Uninstall();
         }

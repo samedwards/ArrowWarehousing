@@ -85,10 +85,8 @@ namespace Nop.Web.Factories
         /// </summary>
         /// <param name="rootCategoryId">Root category identifier</param>
         /// <param name="loadSubCategories">A value indicating whether subcategories should be loaded</param>
-        /// <param name="allCategories">All available categories; pass null to load them internally</param>
         /// <returns>List of category (simple) models</returns>
-        List<CategorySimpleModel> PrepareCategorySimpleModels(int rootCategoryId,
-            bool loadSubCategories = true, IList<Category> allCategories = null);
+        List<CategorySimpleModel> PrepareCategorySimpleModels(int rootCategoryId, bool loadSubCategories = true);
 
         #endregion
 

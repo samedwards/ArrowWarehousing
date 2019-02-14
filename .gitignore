@@ -31,8 +31,9 @@
 *.dll
 .builds
 build/out/
+bin/
+obj
 *.orig-rdn
 teamcity-info.xml
-/Presentation/Nop.Web/Plugins/
 /Presentation/Nop.Web/App_Data/dataSettings.json
 /Presentation/Nop.Web/App_Data/installedPlugins.json

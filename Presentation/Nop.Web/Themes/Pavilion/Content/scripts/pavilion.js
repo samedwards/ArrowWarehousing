@@ -253,7 +253,7 @@
             var data = form.serialize();
 
             $.ajax({
-                url: form.attr('action'),
+                url: form.attr('action') + "?isPopup=true",
                 type: form.attr('method'),
                 //dataType: 'html',
                 data: data
