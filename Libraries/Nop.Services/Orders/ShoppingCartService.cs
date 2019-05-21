@@ -1121,7 +1121,8 @@ namespace Nop.Services.Orders
             }
 
             //reset checkout info
-            _customerService.ResetCheckoutData(customer, storeId);
+            //201-04-01: Don't clear shipping method
+            _customerService.ResetCheckoutData(customer, storeId, clearShippingMethod:false);
 
             var cart = customer.ShoppingCartItems
                 .Where(sci => sci.ShoppingCartType == shoppingCartType)

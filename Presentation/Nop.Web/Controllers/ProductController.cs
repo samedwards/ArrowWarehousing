@@ -53,7 +53,7 @@ namespace Nop.Web.Controllers
         private readonly IWorkflowMessageService _workflowMessageService;
         private readonly LocalizationSettings _localizationSettings;
         private readonly ShoppingCartSettings _shoppingCartSettings;
-
+        private readonly ICheckoutModelFactory _checkoutModelFactory;
         #endregion
 
         #region Ctor
@@ -77,7 +77,8 @@ namespace Nop.Web.Controllers
             IWorkContext workContext,
             IWorkflowMessageService workflowMessageService,
             LocalizationSettings localizationSettings,
-            ShoppingCartSettings shoppingCartSettings)
+            ShoppingCartSettings shoppingCartSettings,
+           ICheckoutModelFactory checkoutModelFactory)
         {
             this._captchaSettings = captchaSettings;
             this._catalogSettings = catalogSettings;
@@ -99,6 +100,7 @@ namespace Nop.Web.Controllers
             this._workflowMessageService = workflowMessageService;
             this._localizationSettings = localizationSettings;
             this._shoppingCartSettings = shoppingCartSettings;
+            this._checkoutModelFactory = checkoutModelFactory;
         }
 
         #endregion
@@ -181,6 +183,25 @@ namespace Nop.Web.Controllers
             var productTemplateViewPath = _productModelFactory.PrepareProductTemplateViewPath(product);
 
             return View(productTemplateViewPath, model);
+        }
+
+        public virtual IActionResult GetShippingOptions(int productId)
+        {
+            var product = _productService.GetProductById(productId);
+            if (product == null)
+                //no product found
+                return null;
+
+            ShoppingCartItem item = new ShoppingCartItem()
+            {
+                Product = product,
+                Customer = _workContext.CurrentCustomer
+            };
+            List<ShoppingCartItem> list = new List<ShoppingCartItem>();
+            list.Add(item);
+            var model = _checkoutModelFactory.PrepareShippingMethodModel(list, _workContext.CurrentCustomer.ShippingAddress!=null ? _workContext.CurrentCustomer.ShippingAddress: new  Core.Domain.Common.Address() );
+
+            return View("_ProductShippingCosts", model);
         }
 
         #endregion

@@ -13,6 +13,7 @@ using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Media;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Security;
+using Nop.Core.Domain.Shipping;
 using Nop.Core.Html;
 using Nop.Core.Infrastructure;
 using Nop.Services.Catalog;
@@ -27,6 +28,7 @@ using Nop.Services.Messages;
 using Nop.Services.Orders;
 using Nop.Services.Security;
 using Nop.Services.Seo;
+using Nop.Services.Shipping;
 using Nop.Services.Tax;
 using Nop.Web.Factories;
 using Nop.Web.Framework.Controllers;
@@ -76,6 +78,7 @@ namespace Nop.Web.Controllers
         private readonly MediaSettings _mediaSettings;
         private readonly OrderSettings _orderSettings;
         private readonly ShoppingCartSettings _shoppingCartSettings;
+        //private readonly IShippingService _shippingService;
 
         #endregion
 
@@ -113,6 +116,7 @@ namespace Nop.Web.Controllers
             MediaSettings mediaSettings,
             OrderSettings orderSettings,
             ShoppingCartSettings shoppingCartSettings)
+           //IShippingService shippingService)
         {
             this._captchaSettings = captchaSettings;
             this._customerSettings = customerSettings;
@@ -146,6 +150,7 @@ namespace Nop.Web.Controllers
             this._mediaSettings = mediaSettings;
             this._orderSettings = orderSettings;
             this._shoppingCartSettings = shoppingCartSettings;
+           //this._shippingService = shippingService;
         }
 
         #endregion
@@ -904,6 +909,49 @@ namespace Nop.Web.Controllers
                 }
             }
 
+            #region 2019-03-29 save shipping 
+
+            var cart1 = _workContext.CurrentCustomer.ShoppingCartItems
+                   .Where(x => x.ShoppingCartTypeId == shoppingCartTypeId)
+                   .LimitPerStore(_storeContext.CurrentStore.Id)
+                   .ToList();
+
+            //parse selected method 
+            string shippingoption = form["shippingoption"]; //"Auckland___Shipping.FixedByWeightByTotal";
+            if (!string.IsNullOrEmpty(shippingoption))
+            {
+                // return ShippingMethod();
+                var splittedOption = shippingoption.Split(new[] { "___" }, StringSplitOptions.RemoveEmptyEntries);
+                //if (splittedOption.Length != 2)
+                //    return ShippingMethod();
+                var selectedName = splittedOption[0];
+                var shippingRateComputationMethodSystemName = splittedOption[1];
+
+                //find it
+                //performance optimization. try cache first
+                var shippingOptions = _genericAttributeService.GetAttribute<List<ShippingOption>>(_workContext.CurrentCustomer,
+                    NopCustomerDefaults.OfferedShippingOptionsAttribute, _storeContext.CurrentStore.Id);
+                if (shippingOptions == null || !shippingOptions.Any())
+                {
+                    //var s=new ShippingService()
+                    //not found? let's load them using shipping service
+                    //shippingOptions = _shippingService.GetShippingOptions(cart1, _workContext.CurrentCustomer.ShippingAddress,
+                    //   _workContext.CurrentCustomer, shippingRateComputationMethodSystemName, _storeContext.CurrentStore.Id).ShippingOptions.ToList();
+                }
+                else
+                {
+                    //loaded cached results. let's filter result by a chosen shipping rate computation method
+                    shippingOptions = shippingOptions.Where(so => so.ShippingRateComputationMethodSystemName.Equals(shippingRateComputationMethodSystemName, StringComparison.InvariantCultureIgnoreCase))
+                        .ToList();
+                }
+
+                var shippingOption = shippingOptions
+                    .Find(so => !string.IsNullOrEmpty(so.Name) && so.Name.Equals(selectedName, StringComparison.InvariantCultureIgnoreCase));
+                //save
+                _genericAttributeService.SaveAttribute(_workContext.CurrentCustomer, NopCustomerDefaults.SelectedShippingOptionAttribute, shippingOption, _storeContext.CurrentStore.Id);
+
+            }
+            #endregion 2019-03-29 save shipping
             //quantity
             var quantity = 1;
             foreach (var formKey in form.Keys)

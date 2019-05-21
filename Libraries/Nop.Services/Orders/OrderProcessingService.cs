@@ -989,7 +989,8 @@ namespace Nop.Services.Orders
                 Total = Math.Round(x.PriceInclTax, 2),
                 TaxRule = "Tax Inclusive",
                 Tax = Math.Round(x.PriceInclTax, 2) -
-                      Math.Round(x.PriceExclTax, 2)
+                      Math.Round(x.PriceExclTax, 2),
+                SaleAccount = "200"
             }).ToList();
 
             if (order.OrderShippingExclTax > 0m)
@@ -1000,7 +1001,8 @@ namespace Nop.Services.Orders
                     Price = order.OrderShippingInclTax,
                     Total = order.OrderShippingInclTax,
                     TaxRule = "Tax Inclusive",
-                    Tax = order.OrderShippingInclTax - order.OrderShippingExclTax
+                    Tax = order.OrderShippingInclTax - order.OrderShippingExclTax,
+                    SaleAccount = "280"
                 });
 
             if (order.PaymentMethodAdditionalFeeExclTax > 0)
@@ -1014,7 +1016,8 @@ namespace Nop.Services.Orders
                     Price = additionalFeeInclTax,
                     Total = additionalFeeInclTax,
                     TaxRule = "Tax Inclusive",
-                    Tax = additionalFeeInclTax - additionalFeeExclTax
+                    Tax = additionalFeeInclTax - additionalFeeExclTax,
+                    SaleAccount = "201"
                 });
             }
 

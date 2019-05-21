@@ -71,7 +71,7 @@
                     }
                     else
                     {
-                    	@await Html.PartialAsync("_ProductDetailsPictures", Model)
+                        @await Html.PartialAsync("_ProductDetailsPictures", Model)
                     }
                     @await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.ProductDetailsAfterPictures, additionalData = Model })
                     <div class="overview">
@@ -104,6 +104,7 @@
                                 @Html.Raw(Model.ShortDescription)
                             </div>
                         }
+
                         <!--SKU, MAN, GTIN, vendor-->
                         @await Html.PartialAsync("_SKU_Man_GTIN_Ven", Model)
                         <!--sample download-->
@@ -122,6 +123,9 @@
                         }
                         <!--availability-->
                         @await Html.PartialAsync("_Availability", Model)
+                        @await Component.InvokeAsync("ProductShippingCost", new { productId = Model.Id })
+                        @*@Html.ActionLink("test", "GetShippingOptions", "Product", new { productId = Model.Id });*@
+                        @*@await Html.PartialAsync("_ProductShippingCosts", new CheckoutShippingMethodModel())*@
                         <!--add to cart-->
                         @{
                             var dataDictAddToCart = new ViewDataDictionary(ViewData);
@@ -152,7 +156,7 @@
                         @await Html.PartialAsync("_DeliveryInfo", Model)
                     </div>
                 </div>
-                
+
                 @{
                     var nopQuickTabsHtml = await Component.InvokeAsync("Widget", new { widgetZone = "productdetails_before_collateral", additionalData = Model.Id });
                 }
@@ -165,14 +169,14 @@
                     {
                         carouselQuickTabsWrapperClass = "two-column-wrapper";
                     }
-                    
+
                     <div class="@carouselQuickTabsWrapperClass">
                         @nopQuickTabsHtml @*nop quick tabs*@
 
                         @productsCarouselHtml @*products carousel for related or also purchased with 1 visible item*@
                     </div>
                 }
-                
+
                 <div class="product-collateral">
                     @if (!String.IsNullOrEmpty(Model.FullDescription))
                     {
@@ -184,6 +188,8 @@
                     @await Html.PartialAsync("_ProductSpecifications", Model.ProductSpecifications)
                     @await Html.PartialAsync("_ProductTags", Model.ProductTags)
                 </div>
+               
+
                 @await Component.InvokeAsync("ProductsAlsoPurchased", new { productId = Model.Id })
                 @await Component.InvokeAsync("RelatedProducts", new { productId = Model.Id })
             </div>
