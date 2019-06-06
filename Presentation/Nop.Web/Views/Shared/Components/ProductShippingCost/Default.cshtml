@@ -1,0 +1,18 @@
+﻿@model CheckoutShippingMethodModel
+<div></div>
+<div class="additional-details">
+    <div class="section">
+        <label for="shippingoption" style="color:#f74258;font-weight:bold;">Estimated shipping cost:</label>
+        <div>(including items in the shipping cart)</div>
+        <div>
+            <select name="shippingoption" id="shippingoption" class="address-select valid">
+                <option>Choose</option>
+                @for (var i = 0; i < Model.ShippingMethods.Count; i++)
+                {
+                    var shippingMethod = Model.ShippingMethods[i];
+                    <option value="@(shippingMethod.Name)___@(shippingMethod.ShippingRateComputationMethodSystemName)" selected="@shippingMethod.Selected">@T("Checkout.SelectShippingMethod.MethodAndFee", shippingMethod.Name, shippingMethod.Fee)</option>
+                }
+            </select>
+        </div>
+    </div>
+</div>

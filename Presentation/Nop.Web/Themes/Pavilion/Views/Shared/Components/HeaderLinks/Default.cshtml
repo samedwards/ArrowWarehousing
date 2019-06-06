@@ -48,7 +48,7 @@
 
 <div class="header-links">
     <ul>
-        @await Component.InvokeAsync("Widget", new { widgetZone = "header_links_before" })
+        @await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.HeaderLinksBefore })
         @if (Model.IsAuthenticated)
         {
             <li><a href="@Url.RouteUrl("CustomerInfo")" class="ico-account">@Model.CustomerName</a></li>
@@ -91,12 +91,12 @@
                 </a>
             </li>
         }*@
-        @await Component.InvokeAsync("Widget", new { widgetZone = "header_links_after" })
+        @await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.HeaderLinksAfter })
     </ul>
     @if (Model.AllowPrivateMessages && !string.IsNullOrEmpty(Model.AlertMessage))
     {
         //new private message notification
-        <script type="text/javascript">
+        <script asp-location="Footer">
             $(document).ready(function () {
                 displayPopupNotification('@Html.Raw(JavaScriptEncoder.Default.Encode(Model.AlertMessage))', 'success', false);
             });

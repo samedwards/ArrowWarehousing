@@ -22,18 +22,12 @@ namespace Nop.Web.Infrastructure
             //and default one
             routeBuilder.MapRoute("Default", "{controller}/{action}/{id?}");
 
-            routeBuilder.MapGenericPathRoute("AllUrls", "{*url}",
-                new { controller = "Common", action = "GenericUrl" });
-
             //generic URLs
             routeBuilder.MapGenericPathRoute("GenericUrl", "{GenericSeName}",
                 new { controller = "Common", action = "GenericUrl" });
 
             //define this routes to use in UI views (in case if you want to customize some of them later)
-            routeBuilder.MapLocalizedRoute("Product", "{SeName}",
-                new { controller = "Product", action = "ProductDetails" });
-
-            routeBuilder.MapLocalizedRoute("ProductWithCategory", "{CategorySeName}/{SeName}", 
+            routeBuilder.MapLocalizedRoute("Product", "{SeName}", 
                 new { controller = "Product", action = "ProductDetails" });
 
             routeBuilder.MapLocalizedRoute("Category", "{SeName}", 
@@ -53,6 +47,10 @@ namespace Nop.Web.Infrastructure
 
             routeBuilder.MapLocalizedRoute("Topic", "{SeName}", 
                 new { controller = "Topic", action = "TopicDetails" });
+
+            //product tags
+            routeBuilder.MapLocalizedRoute("ProductsByTag", "{SeName}",
+                new { controller = "Catalog", action = "ProductsByTag" });
         }
 
         #endregion

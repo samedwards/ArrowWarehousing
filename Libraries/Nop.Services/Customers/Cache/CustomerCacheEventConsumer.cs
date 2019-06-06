@@ -29,10 +29,6 @@ namespace Nop.Services.Customers.Cache
 
         #region Ctor
 
-        /// <summary>
-        /// Ctor
-        /// </summary>
-        /// <param name="cacheManager">Cache manager</param>
         public CustomerCacheEventConsumer(IStaticCacheManager cacheManager)
         {
             this._cacheManager = cacheManager;
@@ -45,7 +41,7 @@ namespace Nop.Services.Customers.Cache
         //password changed
         public void HandleEvent(CustomerPasswordChangedEvent eventMessage)
         {
-            _cacheManager.Remove(string.Format(CUSTOMER_PASSWORD_LIFETIME, eventMessage.Password.CustomerId));
+            _cacheManager.Remove(string.Format(NopCustomerServiceDefaults.CustomerPasswordLifetimeCacheKey, eventMessage.Password.CustomerId));
         }
 
         #endregion

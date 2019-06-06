@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Nop.Core;
 using Nop.Core.Domain.Catalog;
@@ -7,6 +8,7 @@ using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Shipping;
 using Nop.Core.Domain.Tax;
+using Nop.Core.Domain.Vendors;
 using Nop.Services.Catalog;
 using Nop.Services.Directory;
 using Nop.Services.Helpers;
@@ -16,7 +18,7 @@ using Nop.Services.Orders;
 using Nop.Services.Payments;
 using Nop.Services.Seo;
 using Nop.Services.Shipping;
-using Nop.Services.Shipping.Tracking;
+using Nop.Services.Vendors;
 using Nop.Web.Models.Common;
 using Nop.Web.Models.Order;
 
@@ -29,83 +31,90 @@ namespace Nop.Web.Factories
     {
         #region Fields
 
-        private readonly IAddressModelFactory _addressModelFactory;
-        private readonly IOrderService _orderService;
-        private readonly IWorkContext _workContext;
-        private readonly ICurrencyService _currencyService;
-        private readonly IPriceFormatter _priceFormatter;
-        private readonly IOrderProcessingService _orderProcessingService;
-        private readonly IDateTimeHelper _dateTimeHelper;
-        private readonly IPaymentService _paymentService;
-        private readonly ILocalizationService _localizationService;
-        private readonly IShippingService _shippingService;
-        private readonly ICountryService _countryService;
-        private readonly IProductAttributeParser _productAttributeParser;
-        private readonly IDownloadService _downloadService;
-        private readonly IStoreContext _storeContext;
-        private readonly IOrderTotalCalculationService _orderTotalCalculationService;
-        private readonly IRewardPointService _rewardPointService;
-
-        private readonly OrderSettings _orderSettings;
-        private readonly TaxSettings _taxSettings;
-        private readonly CatalogSettings _catalogSettings;
-        private readonly ShippingSettings _shippingSettings;
         private readonly AddressSettings _addressSettings;
-        private readonly RewardPointsSettings _rewardPointsSettings;
+        private readonly CatalogSettings _catalogSettings;
+        private readonly IAddressModelFactory _addressModelFactory;
+        private readonly ICountryService _countryService;
+        private readonly ICurrencyService _currencyService;
+        private readonly IDateTimeHelper _dateTimeHelper;
+        private readonly IDownloadService _downloadService;
+        private readonly ILocalizationService _localizationService;
+        private readonly IOrderProcessingService _orderProcessingService;
+        private readonly IOrderService _orderService;
+        private readonly IOrderTotalCalculationService _orderTotalCalculationService;
+        private readonly IPaymentService _paymentService;
+        private readonly IPriceFormatter _priceFormatter;
+        private readonly IProductService _productService;
+        private readonly IRewardPointService _rewardPointService;
+        private readonly IShipmentService _shipmentService;
+        private readonly IStoreContext _storeContext;
+        private readonly IUrlRecordService _urlRecordService;
+        private readonly IVendorService _vendorService;
+        private readonly IWorkContext _workContext;
+        private readonly OrderSettings _orderSettings;
         private readonly PdfSettings _pdfSettings;
+        private readonly RewardPointsSettings _rewardPointsSettings;
+        private readonly ShippingSettings _shippingSettings;
+        private readonly TaxSettings _taxSettings;
+        private readonly VendorSettings _vendorSettings;
 
         #endregion
 
-		#region Ctor
+        #region Ctor
 
-        public OrderModelFactory(IAddressModelFactory addressModelFactory, 
-            IOrderService orderService,
-            IWorkContext workContext,
-            ICurrencyService currencyService,
-            IPriceFormatter priceFormatter,
-            IOrderProcessingService orderProcessingService, 
-            IDateTimeHelper dateTimeHelper,
-            IPaymentService paymentService, 
-            ILocalizationService localizationService,
-            IShippingService shippingService,
-            ICountryService countryService, 
-            IProductAttributeParser productAttributeParser,
-            IDownloadService downloadService,
-            IStoreContext storeContext,
-            IOrderTotalCalculationService orderTotalCalculationService,
-            IRewardPointService rewardPointService,
+        public OrderModelFactory(AddressSettings addressSettings,
             CatalogSettings catalogSettings,
+            IAddressModelFactory addressModelFactory,
+            ICountryService countryService,
+            ICurrencyService currencyService,
+            IDateTimeHelper dateTimeHelper,
+            IDownloadService downloadService,
+            ILocalizationService localizationService,
+            IOrderProcessingService orderProcessingService,
+            IOrderService orderService,
+            IOrderTotalCalculationService orderTotalCalculationService,
+            IPaymentService paymentService,
+            IPriceFormatter priceFormatter,
+            IProductService productService,
+            IRewardPointService rewardPointService,
+            IShipmentService shipmentService,
+            IStoreContext storeContext,
+            IUrlRecordService urlRecordService,
+            IVendorService vendorService,
+            IWorkContext workContext,
             OrderSettings orderSettings,
-            TaxSettings taxSettings,
-            ShippingSettings shippingSettings, 
-            AddressSettings addressSettings,
+            PdfSettings pdfSettings,
             RewardPointsSettings rewardPointsSettings,
-            PdfSettings pdfSettings)
+            ShippingSettings shippingSettings,
+            TaxSettings taxSettings,
+            VendorSettings vendorSettings)
         {
-            this._addressModelFactory = addressModelFactory;
-            this._orderService = orderService;
-            this._workContext = workContext;
-            this._currencyService = currencyService;
-            this._priceFormatter = priceFormatter;
-            this._orderProcessingService = orderProcessingService;
-            this._dateTimeHelper = dateTimeHelper;
-            this._paymentService = paymentService;
-            this._localizationService = localizationService;
-            this._shippingService = shippingService;
-            this._countryService = countryService;
-            this._productAttributeParser = productAttributeParser;
-            this._downloadService = downloadService;
-            this._storeContext = storeContext;
-            this._orderTotalCalculationService = orderTotalCalculationService;
-            this._rewardPointService = rewardPointService;
-
-            this._catalogSettings = catalogSettings;
-            this._orderSettings = orderSettings;
-            this._taxSettings = taxSettings;
-            this._shippingSettings = shippingSettings;
             this._addressSettings = addressSettings;
-            this._rewardPointsSettings = rewardPointsSettings;
+            this._catalogSettings = catalogSettings;
+            this._addressModelFactory = addressModelFactory;
+            this._countryService = countryService;
+            this._currencyService = currencyService;
+            this._dateTimeHelper = dateTimeHelper;
+            this._downloadService = downloadService;
+            this._localizationService = localizationService;
+            this._orderProcessingService = orderProcessingService;
+            this._orderService = orderService;
+            this._orderTotalCalculationService = orderTotalCalculationService;
+            this._paymentService = paymentService;
+            this._priceFormatter = priceFormatter;
+            this._productService = productService;
+            this._rewardPointService = rewardPointService;
+            this._shipmentService = shipmentService;
+            this._storeContext = storeContext;
+            this._urlRecordService = urlRecordService;
+            this._vendorService = vendorService;
+            this._workContext = workContext;
+            this._orderSettings = orderSettings;
             this._pdfSettings = pdfSettings;
+            this._rewardPointsSettings = rewardPointsSettings;
+            this._shippingSettings = shippingSettings;
+            this._taxSettings = taxSettings;
+            this._vendorSettings = vendorSettings;
         }
 
         #endregion
@@ -128,9 +137,9 @@ namespace Nop.Web.Factories
                     Id = order.Id,
                     CreatedOn = _dateTimeHelper.ConvertToUserTime(order.CreatedOnUtc, DateTimeKind.Utc),
                     OrderStatusEnum = order.OrderStatus,
-                    OrderStatus = order.OrderStatus.GetLocalizedEnum(_localizationService, _workContext),
-                    PaymentStatus = order.PaymentStatus.GetLocalizedEnum(_localizationService, _workContext),
-                    ShippingStatus = order.ShippingStatus.GetLocalizedEnum(_localizationService, _workContext),
+                    OrderStatus = _localizationService.GetLocalizedEnum(order.OrderStatus),
+                    PaymentStatus = _localizationService.GetLocalizedEnum(order.PaymentStatus),
+                    ShippingStatus = _localizationService.GetLocalizedEnum(order.ShippingStatus),
                     IsReturnRequestAllowed = _orderProcessingService.IsReturnRequestAllowed(order),
                     CustomOrderNumber = order.CustomOrderNumber
                 };
@@ -148,7 +157,7 @@ namespace Nop.Web.Factories
                 {
                     Id = recurringPayment.Id,
                     StartDate = _dateTimeHelper.ConvertToUserTime(recurringPayment.StartDateUtc, DateTimeKind.Utc).ToString(),
-                    CycleInfo = $"{recurringPayment.CycleLength} {recurringPayment.CyclePeriod.GetLocalizedEnum(_localizationService, _workContext)}",
+                    CycleInfo = $"{recurringPayment.CycleLength} {_localizationService.GetLocalizedEnum(recurringPayment.CyclePeriod)}",
                     NextPayment = recurringPayment.NextPaymentDate.HasValue ? _dateTimeHelper.ConvertToUserTime(recurringPayment.NextPaymentDate.Value, DateTimeKind.Utc).ToString() : "",
                     TotalCycles = recurringPayment.TotalCycles,
                     CyclesRemaining = recurringPayment.CyclesRemaining,
@@ -177,14 +186,14 @@ namespace Nop.Web.Factories
             {
                 Id = order.Id,
                 CreatedOn = _dateTimeHelper.ConvertToUserTime(order.CreatedOnUtc, DateTimeKind.Utc),
-                OrderStatus = order.OrderStatus.GetLocalizedEnum(_localizationService, _workContext),
+                OrderStatus = _localizationService.GetLocalizedEnum(order.OrderStatus),
                 IsReOrderAllowed = _orderSettings.IsReOrderAllowed,
                 IsReturnRequestAllowed = _orderProcessingService.IsReturnRequestAllowed(order),
                 PdfInvoiceDisabled = _pdfSettings.DisablePdfInvoicesForPendingOrders && order.OrderStatus == OrderStatus.Pending,
                 CustomOrderNumber = order.CustomOrderNumber,
 
                 //shipping info
-                ShippingStatus = order.ShippingStatus.GetLocalizedEnum(_localizationService, _workContext)
+                ShippingStatus = _localizationService.GetLocalizedEnum(order.ShippingStatus)
             };
             if (order.ShippingStatus != ShippingStatus.ShippingNotRequired)
             {
@@ -199,13 +208,14 @@ namespace Nop.Web.Factories
                 }
                 else
                     if (order.PickupAddress != null)
-                        model.PickupAddress = new AddressModel
-                        {
-                            Address1 = order.PickupAddress.Address1,
-                            City = order.PickupAddress.City,
-                            CountryName = order.PickupAddress.Country != null ? order.PickupAddress.Country.Name : string.Empty,
-                            ZipPostalCode = order.PickupAddress.ZipPostalCode
-                        };
+                    model.PickupAddress = new AddressModel
+                    {
+                        Address1 = order.PickupAddress.Address1,
+                        City = order.PickupAddress.City,
+                        County = order.PickupAddress.County,
+                        CountryName = order.PickupAddress.Country != null ? order.PickupAddress.Country.Name : string.Empty,
+                        ZipPostalCode = order.PickupAddress.ZipPostalCode
+                    };
                 model.ShippingMethod = order.ShippingMethod;
 
                 //shipments (only already shipped)
@@ -236,15 +246,14 @@ namespace Nop.Web.Factories
 
             //payment method
             var paymentMethod = _paymentService.LoadPaymentMethodBySystemName(order.PaymentMethodSystemName);
-            model.PaymentMethod = paymentMethod != null ? paymentMethod.GetLocalizedFriendlyName(_localizationService, _workContext.WorkingLanguage.Id) : order.PaymentMethodSystemName;
-            model.PaymentMethodStatus = order.PaymentStatus.GetLocalizedEnum(_localizationService, _workContext);
+            model.PaymentMethod = paymentMethod != null ? _localizationService.GetLocalizedFriendlyName(paymentMethod, _workContext.WorkingLanguage.Id) : order.PaymentMethodSystemName;
+            model.PaymentMethodStatus = _localizationService.GetLocalizedEnum(order.PaymentStatus);
             model.CanRePostProcessPayment = _paymentService.CanRePostProcessPayment(order);
             //custom values
-            model.CustomValues = order.DeserializeCustomValues();
+            model.CustomValues = _paymentService.DeserializeCustomValues(order);
 
             //order subtotal
-//            if (order.CustomerTaxDisplayType == TaxDisplayType.IncludingTax && !_taxSettings.ForceTaxExclusionFromOrderSubtotal)
-            if (_workContext.TaxDisplayType == TaxDisplayType.IncludingTax && !_taxSettings.ForceTaxExclusionFromOrderSubtotal)
+            if (order.CustomerTaxDisplayType == TaxDisplayType.IncludingTax && !_taxSettings.ForceTaxExclusionFromOrderSubtotal)
             {
                 //including tax
 
@@ -269,8 +278,7 @@ namespace Nop.Web.Factories
                     model.OrderSubTotalDiscount = _priceFormatter.FormatPrice(-orderSubTotalDiscountExclTaxInCustomerCurrency, true, order.CustomerCurrencyCode, _workContext.WorkingLanguage, false);
             }
 
-//            if (order.CustomerTaxDisplayType == TaxDisplayType.IncludingTax)
-            if (_workContext.TaxDisplayType == TaxDisplayType.IncludingTax)
+            if (order.CustomerTaxDisplayType == TaxDisplayType.IncludingTax)
             {
                 //including tax
 
@@ -279,10 +287,8 @@ namespace Nop.Web.Factories
                 model.OrderShipping = _priceFormatter.FormatShippingPrice(orderShippingInclTaxInCustomerCurrency, true, order.CustomerCurrencyCode, _workContext.WorkingLanguage, true);
                 //payment method additional fee
                 var paymentMethodAdditionalFeeInclTaxInCustomerCurrency = _currencyService.ConvertCurrency(order.PaymentMethodAdditionalFeeInclTax, order.CurrencyRate);
-                if (paymentMethodAdditionalFeeInclTaxInCustomerCurrency > decimal.Zero) {
-                    var paymentMethodAdditionalFee = Math.Round((order.OrderSubtotalInclTax + order.OrderShippingInclTax) * (order.PaymentMethodAdditionalFeeInclTax / 100), 2);
-                    model.PaymentMethodAdditionalFee = _priceFormatter.FormatPaymentMethodAdditionalFee(paymentMethodAdditionalFee, true, order.CustomerCurrencyCode, _workContext.WorkingLanguage, true);
-                }
+                if (paymentMethodAdditionalFeeInclTaxInCustomerCurrency > decimal.Zero)
+                    model.PaymentMethodAdditionalFee = _priceFormatter.FormatPaymentMethodAdditionalFee(paymentMethodAdditionalFeeInclTaxInCustomerCurrency, true, order.CustomerCurrencyCode, _workContext.WorkingLanguage, true);
             }
             else
             {
@@ -293,18 +299,14 @@ namespace Nop.Web.Factories
                 model.OrderShipping = _priceFormatter.FormatShippingPrice(orderShippingExclTaxInCustomerCurrency, true, order.CustomerCurrencyCode, _workContext.WorkingLanguage, false);
                 //payment method additional fee
                 var paymentMethodAdditionalFeeExclTaxInCustomerCurrency = _currencyService.ConvertCurrency(order.PaymentMethodAdditionalFeeExclTax, order.CurrencyRate);
-                if (paymentMethodAdditionalFeeExclTaxInCustomerCurrency > decimal.Zero) {
-
-                    var paymentMethodAdditionalFee = Math.Round((order.OrderSubtotalExclTax + order.OrderShippingExclTax) * (order.PaymentMethodAdditionalFeeExclTax / 100), 2);
-                    model.PaymentMethodAdditionalFee = _priceFormatter.FormatPaymentMethodAdditionalFee(paymentMethodAdditionalFee, true, order.CustomerCurrencyCode, _workContext.WorkingLanguage, false);
-                }
+                if (paymentMethodAdditionalFeeExclTaxInCustomerCurrency > decimal.Zero)
+                    model.PaymentMethodAdditionalFee = _priceFormatter.FormatPaymentMethodAdditionalFee(paymentMethodAdditionalFeeExclTaxInCustomerCurrency, true, order.CustomerCurrencyCode, _workContext.WorkingLanguage, false);
             }
 
             //tax
             var displayTax = true;
             var displayTaxRates = true;
-//            if (_taxSettings.HideTaxInOrderSummary && order.CustomerTaxDisplayType == TaxDisplayType.IncludingTax)
-            if (_taxSettings.HideTaxInOrderSummary && _workContext.TaxDisplayType == TaxDisplayType.IncludingTax)
+            if (_taxSettings.HideTaxInOrderSummary && order.CustomerTaxDisplayType == TaxDisplayType.IncludingTax)
             {
                 displayTax = false;
                 displayTaxRates = false;
@@ -318,14 +320,15 @@ namespace Nop.Web.Factories
                 }
                 else
                 {
-                    displayTaxRates = _taxSettings.DisplayTaxRates && order.TaxRatesDictionary.Any();
+                    var taxRates = _orderService.ParseTaxRates(order, order.TaxRates);
+                    displayTaxRates = _taxSettings.DisplayTaxRates && taxRates.Any();
                     displayTax = !displayTaxRates;
 
                     var orderTaxInCustomerCurrency = _currencyService.ConvertCurrency(order.OrderTax, order.CurrencyRate);
                     //TODO pass languageId to _priceFormatter.FormatPrice
                     model.Tax = _priceFormatter.FormatPrice(orderTaxInCustomerCurrency, true, order.CustomerCurrencyCode, false, _workContext.WorkingLanguage);
 
-                    foreach (var tr in order.TaxRatesDictionary)
+                    foreach (var tr in taxRates)
                     {
                         model.TaxRates.Add(new OrderDetailsModel.TaxRate
                         {
@@ -339,8 +342,7 @@ namespace Nop.Web.Factories
             model.DisplayTaxRates = displayTaxRates;
             model.DisplayTax = displayTax;
             model.DisplayTaxShippingInfo = _catalogSettings.DisplayTaxShippingInfoOrderDetailsPage;
-//            model.PricesIncludeTax = order.CustomerTaxDisplayType == TaxDisplayType.IncludingTax;
-            model.PricesIncludeTax = _workContext.TaxDisplayType == TaxDisplayType.IncludingTax;
+            model.PricesIncludeTax = order.CustomerTaxDisplayType == TaxDisplayType.IncludingTax;
 
             //discount (applied to order total)
             var orderDiscountInCustomerCurrency = _currencyService.ConvertCurrency(order.OrderDiscount, order.CurrencyRate);
@@ -381,40 +383,47 @@ namespace Nop.Web.Factories
                 {
                     Id = orderNote.Id,
                     HasDownload = orderNote.DownloadId > 0,
-                    Note = orderNote.FormatOrderNoteText(),
+                    Note = _orderService.FormatOrderNoteText(orderNote),
                     CreatedOn = _dateTimeHelper.ConvertToUserTime(orderNote.CreatedOnUtc, DateTimeKind.Utc)
                 });
             }
 
             //purchased products
             model.ShowSku = _catalogSettings.ShowSkuOnProductDetailsPage;
+            model.ShowVendorName = _vendorSettings.ShowVendorOnOrderDetailsPage;
+
             var orderItems = order.OrderItems;
+
+            var vendors = _vendorSettings.ShowVendorOnOrderDetailsPage ? _vendorService.GetVendorsByIds(orderItems.Select(item => item.Product.VendorId).ToArray()) : new List<Vendor>();
+
             foreach (var orderItem in orderItems)
             {
                 var orderItemModel = new OrderDetailsModel.OrderItemModel
                 {
                     Id = orderItem.Id,
                     OrderItemGuid = orderItem.OrderItemGuid,
-                    Sku = orderItem.Product.FormatSku(orderItem.AttributesXml, _productAttributeParser),
+                    Sku = _productService.FormatSku(orderItem.Product, orderItem.AttributesXml),
+                    VendorName = vendors.FirstOrDefault(v => v.Id == orderItem.Product.VendorId)?.Name ?? string.Empty,
                     ProductId = orderItem.Product.Id,
-                    ProductName = orderItem.Product.GetLocalized(x => x.Name),
-                    ProductSeName = orderItem.Product.GetSeName(),
+                    ProductName = _localizationService.GetLocalized(orderItem.Product, x => x.Name),
+                    ProductSeName = _urlRecordService.GetSeName(orderItem.Product),
                     Quantity = orderItem.Quantity,
                     AttributeInfo = orderItem.AttributeDescription,
                 };
                 //rental info
                 if (orderItem.Product.IsRental)
                 {
-                    var rentalStartDate = orderItem.RentalStartDateUtc.HasValue ? orderItem.Product.FormatRentalDate(orderItem.RentalStartDateUtc.Value) : "";
-                    var rentalEndDate = orderItem.RentalEndDateUtc.HasValue ? orderItem.Product.FormatRentalDate(orderItem.RentalEndDateUtc.Value) : "";
+                    var rentalStartDate = orderItem.RentalStartDateUtc.HasValue
+                        ? _productService.FormatRentalDate(orderItem.Product, orderItem.RentalStartDateUtc.Value) : "";
+                    var rentalEndDate = orderItem.RentalEndDateUtc.HasValue
+                        ? _productService.FormatRentalDate(orderItem.Product, orderItem.RentalEndDateUtc.Value) : "";
                     orderItemModel.RentalInfo = string.Format(_localizationService.GetResource("Order.Rental.FormattedDate"),
                         rentalStartDate, rentalEndDate);
                 }
                 model.Items.Add(orderItemModel);
 
                 //unit price, subtotal
-//                if (order.CustomerTaxDisplayType == TaxDisplayType.IncludingTax)
-                if (_workContext.TaxDisplayType == TaxDisplayType.IncludingTax)
+                if (order.CustomerTaxDisplayType == TaxDisplayType.IncludingTax)
                 {
                     //including tax
                     var unitPriceInclTaxInCustomerCurrency = _currencyService.ConvertCurrency(orderItem.UnitPriceInclTax, order.CurrencyRate);
@@ -464,12 +473,12 @@ namespace Nop.Web.Factories
                 model.ShippedDate = _dateTimeHelper.ConvertToUserTime(shipment.ShippedDateUtc.Value, DateTimeKind.Utc);
             if (shipment.DeliveryDateUtc.HasValue)
                 model.DeliveryDate = _dateTimeHelper.ConvertToUserTime(shipment.DeliveryDateUtc.Value, DateTimeKind.Utc);
-            
+
             //tracking number and shipment information
             if (!string.IsNullOrEmpty(shipment.TrackingNumber))
             {
                 model.TrackingNumber = shipment.TrackingNumber;
-                var shipmentTracker = shipment.GetShipmentTracker(_shippingService, _shippingSettings);
+                var shipmentTracker = _shipmentService.GetShipmentTracker(shipment);
                 if (shipmentTracker != null)
                 {
                     model.TrackingNumberUrl = shipmentTracker.GetUrl(shipment.TrackingNumber);
@@ -481,9 +490,8 @@ namespace Nop.Web.Factories
                             {
                                 var shipmentStatusEventModel = new ShipmentDetailsModel.ShipmentStatusEventModel();
                                 var shipmentEventCountry = _countryService.GetCountryByTwoLetterIsoCode(shipmentEvent.CountryCode);
-                                shipmentStatusEventModel.Country = shipmentEventCountry != null
-                                                                        ? shipmentEventCountry.GetLocalized(x => x.Name)
-                                                                        : shipmentEvent.CountryCode;
+                                shipmentStatusEventModel.Country = shipmentEventCountry != null 
+                                    ? _localizationService.GetLocalized(shipmentEventCountry, x => x.Name) : shipmentEvent.CountryCode;
                                 shipmentStatusEventModel.Date = shipmentEvent.Date;
                                 shipmentStatusEventModel.EventName = shipmentEvent.EventName;
                                 shipmentStatusEventModel.Location = shipmentEvent.Location;
@@ -504,10 +512,10 @@ namespace Nop.Web.Factories
                 var shipmentItemModel = new ShipmentDetailsModel.ShipmentItemModel
                 {
                     Id = shipmentItem.Id,
-                    Sku = orderItem.Product.FormatSku(orderItem.AttributesXml, _productAttributeParser),
+                    Sku = _productService.FormatSku(orderItem.Product, orderItem.AttributesXml),
                     ProductId = orderItem.Product.Id,
-                    ProductName = orderItem.Product.GetLocalized(x => x.Name),
-                    ProductSeName = orderItem.Product.GetSeName(),
+                    ProductName = _localizationService.GetLocalized(orderItem.Product, x => x.Name),
+                    ProductSeName = _urlRecordService.GetSeName(orderItem.Product),
                     AttributeInfo = orderItem.AttributeDescription,
                     QuantityOrdered = orderItem.Quantity,
                     QuantityShipped = shipmentItem.Quantity,
@@ -515,8 +523,10 @@ namespace Nop.Web.Factories
                 //rental info
                 if (orderItem.Product.IsRental)
                 {
-                    var rentalStartDate = orderItem.RentalStartDateUtc.HasValue ? orderItem.Product.FormatRentalDate(orderItem.RentalStartDateUtc.Value) : "";
-                    var rentalEndDate = orderItem.RentalEndDateUtc.HasValue ? orderItem.Product.FormatRentalDate(orderItem.RentalEndDateUtc.Value) : "";
+                    var rentalStartDate = orderItem.RentalStartDateUtc.HasValue
+                        ? _productService.FormatRentalDate(orderItem.Product, orderItem.RentalStartDateUtc.Value) : "";
+                    var rentalEndDate = orderItem.RentalEndDateUtc.HasValue
+                        ? _productService.FormatRentalDate(orderItem.Product, orderItem.RentalEndDateUtc.Value) : "";
                     shipmentItemModel.RentalInfo = string.Format(_localizationService.GetResource("Order.Rental.FormattedDate"),
                         rentalStartDate, rentalEndDate);
                 }
@@ -525,7 +535,7 @@ namespace Nop.Web.Factories
 
             //order details model
             model.Order = PrepareOrderDetailsModel(order);
-            
+
             return model;
         }
 
@@ -536,33 +546,38 @@ namespace Nop.Web.Factories
         /// <returns>Customer reward points model</returns>
         public virtual CustomerRewardPointsModel PrepareCustomerRewardPoints(int? page)
         {
+            //get reward points history
             var customer = _workContext.CurrentCustomer;
+            var store = _storeContext.CurrentStore;
             var pageSize = _rewardPointsSettings.PageSize;
-            var model = new CustomerRewardPointsModel();
-            var list = _rewardPointService.GetRewardPointsHistory(customer.Id, showNotActivated: true, pageIndex: --page ?? 0, pageSize: pageSize);
+            var rewardPoints = _rewardPointService.GetRewardPointsHistory(customer.Id, store.Id, true, pageIndex: --page ?? 0, pageSize: pageSize);
 
-            model.RewardPoints = list.Select(rph =>
+            //prepare model
+            var model = new CustomerRewardPointsModel();
+            model.RewardPoints = rewardPoints.Select(historyEntry =>
             {
-                var activatingDate = _dateTimeHelper.ConvertToUserTime(rph.CreatedOnUtc, DateTimeKind.Utc);
+                var activatingDate = _dateTimeHelper.ConvertToUserTime(historyEntry.CreatedOnUtc, DateTimeKind.Utc);
                 return new CustomerRewardPointsModel.RewardPointsHistoryModel
                 {
-                    Points = rph.Points,
-                    PointsBalance = rph.PointsBalance.HasValue ? rph.PointsBalance.ToString()
+                    Points = historyEntry.Points,
+                    PointsBalance = historyEntry.PointsBalance.HasValue ? historyEntry.PointsBalance.ToString()
                         : string.Format(_localizationService.GetResource("RewardPoints.ActivatedLater"), activatingDate),
-                    Message = rph.Message,
-                    CreatedOn = activatingDate
+                    Message = historyEntry.Message,
+                    CreatedOn = activatingDate,
+                    EndDate = !historyEntry.EndDateUtc.HasValue ? null :
+                        (DateTime?)_dateTimeHelper.ConvertToUserTime(historyEntry.EndDateUtc.Value, DateTimeKind.Utc)
                 };
             }).ToList();
 
             model.PagerModel = new PagerModel
             {
-                PageSize = list.PageSize,
-                TotalRecords = list.TotalCount,
-                PageIndex = list.PageIndex,
+                PageSize = rewardPoints.PageSize,
+                TotalRecords = rewardPoints.TotalCount,
+                PageIndex = rewardPoints.PageIndex,
                 ShowTotalSummary = true,
                 RouteActionName = "CustomerRewardPointsPaged",
                 UseRouteLinks = true,
-                RouteValues = new RewardPointsRouteValues { pageNumber = page ?? 0}
+                RouteValues = new RewardPointsRouteValues { pageNumber = page ?? 0 }
             };
 
             //current amount/balance
@@ -571,12 +586,14 @@ namespace Nop.Web.Factories
             var rewardPointsAmount = _currencyService.ConvertFromPrimaryStoreCurrency(rewardPointsAmountBase, _workContext.WorkingCurrency);
             model.RewardPointsBalance = rewardPointsBalance;
             model.RewardPointsAmount = _priceFormatter.FormatPrice(rewardPointsAmount, true, false);
+
             //minimum amount/balance
             var minimumRewardPointsBalance = _rewardPointsSettings.MinimumRewardPointsToUse;
             var minimumRewardPointsAmountBase = _orderTotalCalculationService.ConvertRewardPointsToAmount(minimumRewardPointsBalance);
             var minimumRewardPointsAmount = _currencyService.ConvertFromPrimaryStoreCurrency(minimumRewardPointsAmountBase, _workContext.WorkingCurrency);
             model.MinimumRewardPointsBalance = minimumRewardPointsBalance;
             model.MinimumRewardPointsAmount = _priceFormatter.FormatPrice(minimumRewardPointsAmount, true, false);
+
             return model;
         }
 

@@ -1,11 +1,16 @@
 ﻿using System;
+using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Primitives;
 using Nop.Core;
+using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Localization;
 using Nop.Core.Domain.Media;
+using Nop.Core.Domain.Security;
 using Nop.Core.Domain.Vendors;
+using Nop.Services.Common;
 using Nop.Services.Customers;
 using Nop.Services.Localization;
 using Nop.Services.Media;
@@ -25,62 +30,152 @@ namespace Nop.Web.Controllers
     {
         #region Fields
 
-        private readonly IVendorModelFactory _vendorModelFactory;
-        private readonly IWorkContext _workContext;
-        private readonly ILocalizationService _localizationService;
+        private readonly CaptchaSettings _captchaSettings;
         private readonly ICustomerService _customerService;
-        private readonly IWorkflowMessageService _workflowMessageService;
-        private readonly IVendorService _vendorService;
-        private readonly IUrlRecordService _urlRecordService;
+        private readonly IDownloadService _downloadService;
+        private readonly IGenericAttributeService _genericAttributeService;
+        private readonly ILocalizationService _localizationService;
         private readonly IPictureService _pictureService;
-
+        private readonly IUrlRecordService _urlRecordService;
+        private readonly IVendorAttributeParser _vendorAttributeParser;
+        private readonly IVendorAttributeService _vendorAttributeService;
+        private readonly IVendorModelFactory _vendorModelFactory;
+        private readonly IVendorService _vendorService;
+        private readonly IWorkContext _workContext;
+        private readonly IWorkflowMessageService _workflowMessageService;
         private readonly LocalizationSettings _localizationSettings;
         private readonly VendorSettings _vendorSettings;
-        private readonly CaptchaSettings _captchaSettings;
-        
+
         #endregion
-        
+
         #region Ctor
 
-        public VendorController(IVendorModelFactory vendorModelFactory,
-            IWorkContext workContext,
-            ILocalizationService localizationService,
+        public VendorController(CaptchaSettings captchaSettings,
             ICustomerService customerService,
-            IWorkflowMessageService workflowMessageService,
-            IVendorService vendorService,
-            IUrlRecordService urlRecordService,
+            IDownloadService downloadService,
+            IGenericAttributeService genericAttributeService,
+            ILocalizationService localizationService,
             IPictureService pictureService,
+            IUrlRecordService urlRecordService,
+            IVendorAttributeParser vendorAttributeParser,
+            IVendorAttributeService vendorAttributeService,
+            IVendorModelFactory vendorModelFactory,
+            IVendorService vendorService,
+            IWorkContext workContext,
+            IWorkflowMessageService workflowMessageService,
             LocalizationSettings localizationSettings,
-            VendorSettings vendorSettings,
-            CaptchaSettings captchaSettings)
+            VendorSettings vendorSettings)
         {
-            this._vendorModelFactory = vendorModelFactory;
-            this._workContext = workContext;
-            this._localizationService = localizationService;
+            this._captchaSettings = captchaSettings;
             this._customerService = customerService;
-            this._workflowMessageService = workflowMessageService;
-            this._vendorService = vendorService;
-            this._urlRecordService = urlRecordService;
+            this._downloadService = downloadService;
+            this._genericAttributeService = genericAttributeService;
+            this._localizationService = localizationService;
             this._pictureService = pictureService;
-
+            this._urlRecordService = urlRecordService;
+            this._vendorAttributeParser = vendorAttributeParser;
+            this._vendorAttributeService = vendorAttributeService;
+            this._vendorModelFactory = vendorModelFactory;
+            this._vendorService = vendorService;
+            this._workContext = workContext;
+            this._workflowMessageService = workflowMessageService;
             this._localizationSettings = localizationSettings;
             this._vendorSettings = vendorSettings;
-            this._captchaSettings = captchaSettings;
         }
-        
+
         #endregion
-        
+
         #region Utilities
-        
+
         protected virtual void UpdatePictureSeoNames(Vendor vendor)
         {
             var picture = _pictureService.GetPictureById(vendor.PictureId);
             if (picture != null)
                 _pictureService.SetSeoFilename(picture.Id, _pictureService.GetPictureSeName(vendor.Name));
         }
-        
+
+        protected virtual string ParseVendorAttributes(IFormCollection form)
+        {
+            if (form == null)
+                throw new ArgumentNullException(nameof(form));
+
+            var attributesXml = "";
+            var attributes = _vendorAttributeService.GetAllVendorAttributes();
+            foreach (var attribute in attributes)
+            {
+                var controlId = $"vendor_attribute_{attribute.Id}";
+                switch (attribute.AttributeControlType)
+                {
+                    case AttributeControlType.DropdownList:
+                    case AttributeControlType.RadioList:
+                        {
+                            var ctrlAttributes = form[controlId];
+                            if (!StringValues.IsNullOrEmpty(ctrlAttributes))
+                            {
+                                var selectedAttributeId = int.Parse(ctrlAttributes);
+                                if (selectedAttributeId > 0)
+                                    attributesXml = _vendorAttributeParser.AddVendorAttribute(attributesXml,
+                                        attribute, selectedAttributeId.ToString());
+                            }
+                        }
+                        break;
+                    case AttributeControlType.Checkboxes:
+                        {
+                            var cblAttributes = form[controlId];
+                            if (!StringValues.IsNullOrEmpty(cblAttributes))
+                            {
+                                foreach (var item in cblAttributes.ToString().Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                                )
+                                {
+                                    var selectedAttributeId = int.Parse(item);
+                                    if (selectedAttributeId > 0)
+                                        attributesXml = _vendorAttributeParser.AddVendorAttribute(attributesXml,
+                                            attribute, selectedAttributeId.ToString());
+                                }
+                            }
+                        }
+                        break;
+                    case AttributeControlType.ReadonlyCheckboxes:
+                        {
+                            //load read-only (already server-side selected) values
+                            var attributeValues = _vendorAttributeService.GetVendorAttributeValues(attribute.Id);
+                            foreach (var selectedAttributeId in attributeValues
+                                .Where(v => v.IsPreSelected)
+                                .Select(v => v.Id)
+                                .ToList())
+                            {
+                                attributesXml = _vendorAttributeParser.AddVendorAttribute(attributesXml,
+                                    attribute, selectedAttributeId.ToString());
+                            }
+                        }
+                        break;
+                    case AttributeControlType.TextBox:
+                    case AttributeControlType.MultilineTextbox:
+                        {
+                            var ctrlAttributes = form[controlId];
+                            if (!StringValues.IsNullOrEmpty(ctrlAttributes))
+                            {
+                                var enteredText = ctrlAttributes.ToString().Trim();
+                                attributesXml = _vendorAttributeParser.AddVendorAttribute(attributesXml,
+                                    attribute, enteredText);
+                            }
+                        }
+                        break;
+                    case AttributeControlType.Datepicker:
+                    case AttributeControlType.ColorSquares:
+                    case AttributeControlType.ImageSquares:
+                    case AttributeControlType.FileUpload:
+                    //not supported vendor attributes
+                    default:
+                        break;
+                }
+            }
+
+            return attributesXml;
+        }
+
         #endregion
-        
+
         #region Methods
 
         [HttpsRequirement(SslRequirement.Yes)]
@@ -93,7 +188,7 @@ namespace Nop.Web.Controllers
                 return Challenge();
 
             var model = new ApplyVendorModel();
-            model = _vendorModelFactory.PrepareApplyVendorModel(model, true, false);
+            model = _vendorModelFactory.PrepareApplyVendorModel(model, true, false, null);
             return View(model);
         }
 
@@ -121,7 +216,7 @@ namespace Nop.Web.Controllers
                 try
                 {
                     var contentType = uploadedFile.ContentType;
-                    var vendorPictureBinary = uploadedFile.GetPictureBits();
+                    var vendorPictureBinary = _downloadService.GetDownloadBits(uploadedFile);
                     var picture = _pictureService.InsertPicture(vendorPictureBinary, contentType, null);
 
                     if (picture != null)
@@ -132,6 +227,11 @@ namespace Nop.Web.Controllers
                     ModelState.AddModelError("", _localizationService.GetResource("Vendors.ApplyAccount.Picture.ErrorMessage"));
                 }
             }
+
+            //vendor attributes
+            var vendorAttributesXml = ParseVendorAttributes(model.Form);
+            _vendorAttributeParser.GetAttributeWarnings(vendorAttributesXml).ToList()
+                .ForEach(warning => ModelState.AddModelError(string.Empty, warning));
 
             if (ModelState.IsValid)
             {
@@ -150,7 +250,7 @@ namespace Nop.Web.Controllers
                 };
                 _vendorService.InsertVendor(vendor);
                 //search engine name (the same as vendor name)
-                var seName = vendor.ValidateSeName(vendor.Name, vendor.Name, true);
+                var seName = _urlRecordService.ValidateSeName(vendor, vendor.Name, vendor.Name, true);
                 _urlRecordService.SaveSlug(vendor, seName, 0);
 
                 //associate to the current customer
@@ -162,6 +262,9 @@ namespace Nop.Web.Controllers
                 //update picture seo file name
                 UpdatePictureSeoNames(vendor);
 
+                //save vendor attributes
+                _genericAttributeService.SaveAttribute(vendor, NopVendorDefaults.VendorAttributes, vendorAttributesXml);
+
                 //notify store owner here (email)
                 _workflowMessageService.SendNewVendorAccountApplyStoreOwnerNotification(_workContext.CurrentCustomer,
                     vendor, _localizationSettings.DefaultAdminLanguageId);
@@ -172,7 +275,7 @@ namespace Nop.Web.Controllers
             }
 
             //If we got this far, something failed, redisplay form
-            model = _vendorModelFactory.PrepareApplyVendorModel(model, false, true);
+            model = _vendorModelFactory.PrepareApplyVendorModel(model, false, true, vendorAttributesXml);
             return View(model);
         }
 
@@ -200,15 +303,15 @@ namespace Nop.Web.Controllers
 
             if (_workContext.CurrentVendor == null || !_vendorSettings.AllowVendorsToEditInfo)
                 return RedirectToRoute("CustomerInfo");
-            
+
             Picture picture = null;
 
             if (uploadedFile != null && !string.IsNullOrEmpty(uploadedFile.FileName))
             {
                 try
-                 {
+                {
                     var contentType = uploadedFile.ContentType;
-                    var vendorPictureBinary = uploadedFile.GetPictureBits();
+                    var vendorPictureBinary = _downloadService.GetDownloadBits(uploadedFile);
                     picture = _pictureService.InsertPicture(vendorPictureBinary, contentType, null);
                 }
                 catch (Exception)
@@ -219,6 +322,11 @@ namespace Nop.Web.Controllers
 
             var vendor = _workContext.CurrentVendor;
             var prevPicture = _pictureService.GetPictureById(vendor.PictureId);
+
+            //vendor attributes
+            var vendorAttributesXml = ParseVendorAttributes(model.Form);
+            _vendorAttributeParser.GetAttributeWarnings(vendorAttributesXml).ToList()
+                .ForEach(warning => ModelState.AddModelError(string.Empty, warning));
 
             if (ModelState.IsValid)
             {
@@ -241,6 +349,9 @@ namespace Nop.Web.Controllers
 
                 _vendorService.UpdateVendor(vendor);
 
+                //save vendor attributes
+                _genericAttributeService.SaveAttribute(vendor, NopVendorDefaults.VendorAttributes, vendorAttributesXml);
+
                 //notifications
                 if (_vendorSettings.NotifyStoreOwnerAboutVendorInformationChange)
                     _workflowMessageService.SendVendorInformationChangeNotification(vendor, _localizationSettings.DefaultAdminLanguageId);
@@ -249,7 +360,7 @@ namespace Nop.Web.Controllers
             }
 
             //If we got this far, something failed, redisplay form
-            model = _vendorModelFactory.PrepareVendorInfoModel(model, true);
+            model = _vendorModelFactory.PrepareVendorInfoModel(model, true, vendorAttributesXml);
             return View(model);
         }
 
@@ -279,7 +390,7 @@ namespace Nop.Web.Controllers
 
             return RedirectToAction("Info");
         }
-        
+
         #endregion
     }
 }

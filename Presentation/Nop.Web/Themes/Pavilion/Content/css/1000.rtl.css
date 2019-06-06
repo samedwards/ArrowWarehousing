@@ -95,6 +95,11 @@
 .cart .subtotal {
     white-space: nowrap;
 }
+.reward-points-history .data-table col:first-child,
+.reward-points-history .data-table th:first-child,
+.reward-points-history .data-table td:first-child {
+	display: none !important; /*hides counter*/
+}
 .order-details-page .data-table col:first-child,
 .order-details-page .data-table th:first-child,
 .order-details-page .data-table td:first-child {
@@ -846,8 +851,10 @@
 	margin-top: -10px;
 	text-align: right;
 }
-.breadcrumb li > * {
-	margin-right: 0;
+.breadcrumb li > a,
+.breadcrumb li > span,
+.breadcrumb li > strong {
+	margin-right: 0 !important;
 }
 .breadcrumb a:hover {
 	color: #f74258;
@@ -1107,6 +1114,10 @@
 }
 .reward-points-page th,
 .reward-points-page td {
+	text-align: right;
+}
+.check-gift-card-balance-page 
+.captcha-box {
 	text-align: right;
 }
 

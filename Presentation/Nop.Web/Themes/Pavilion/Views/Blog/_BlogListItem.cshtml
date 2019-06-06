@@ -2,10 +2,10 @@
 
 @foreach (var item in Model)
 {
-    @await Component.InvokeAsync("Widget", new { widgetZone = "bloglist_page_before_post", additionalData = item.Id })
+	@await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.BlogListPageBeforePost, additionalData = item })
     <div class="post">
         <div class="post-head">
-            @await Component.InvokeAsync("Widget", new { widgetZone = "bloglist_page_before_post_body", additionalData = item.Id })
+			@await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.BlogListPageBeforePostBody, additionalData = item })
         </div>
         <div class="post-body">
             <span class="post-date">@item.CreatedOn.ToString("ddd"), @item.CreatedOn.ToString("MMM") @item.CreatedOn.Day, @item.CreatedOn.Year</span>
@@ -17,9 +17,9 @@
             <div class="post-preview">
                 @Html.Raw(!String.IsNullOrEmpty(item.BodyOverview) ? item.BodyOverview : item.Body)
             </div>
-            @await Component.InvokeAsync("Widget", new { widgetZone = "bloglist_page_inside_post", additionalData = item.Id })
+			@await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.BlogListPageInsidePost, additionalData = item })
         </div>
-        @await Component.InvokeAsync("Widget", new { widgetZone = "bloglist_page_after_post_body", additionalData = item.Id })
+		@await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.BlogListPageAfterPostBody, additionalData = item })
         @if (item.Tags.Count > 0)
         {
             <div class="tags">
@@ -38,5 +38,5 @@
             </div>
         }
     </div>
-    @await Component.InvokeAsync("Widget", new { widgetZone = "bloglist_page_after_post", additionalData = item.Id })
+	@await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.BlogListPageAfterPost, additionalData = item })
 }

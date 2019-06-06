@@ -7,6 +7,7 @@ using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Localization;
 using Nop.Core.Domain.Orders;
+using Nop.Core.Domain.Security;
 using Nop.Services.Catalog;
 using Nop.Services.Events;
 using Nop.Services.Localization;
@@ -32,69 +33,74 @@ namespace Nop.Web.Controllers
     {
         #region Fields
 
-        private readonly IProductModelFactory _productModelFactory;
-        private readonly IProductService _productService;
-        private readonly IWorkContext _workContext;
-        private readonly IStoreContext _storeContext;
-        private readonly ILocalizationService _localizationService;
-        private readonly IWebHelper _webHelper;
-        private readonly IRecentlyViewedProductsService _recentlyViewedProductsService;
-        private readonly ICompareProductsService _compareProductsService;
-        private readonly IWorkflowMessageService _workflowMessageService;
-        private readonly IOrderService _orderService;
+        private readonly CaptchaSettings _captchaSettings;
+        private readonly CatalogSettings _catalogSettings;
         private readonly IAclService _aclService;
-        private readonly IStoreMappingService _storeMappingService;
-        private readonly IPermissionService _permissionService;
+        private readonly ICompareProductsService _compareProductsService;
         private readonly ICustomerActivityService _customerActivityService;
         private readonly IEventPublisher _eventPublisher;
-        private readonly CatalogSettings _catalogSettings;
-        private readonly ShoppingCartSettings _shoppingCartSettings;
+        private readonly ILocalizationService _localizationService;
+        private readonly IOrderService _orderService;
+        private readonly IPermissionService _permissionService;
+        private readonly IProductModelFactory _productModelFactory;
+        private readonly IProductService _productService;
+        private readonly IRecentlyViewedProductsService _recentlyViewedProductsService;
+        private readonly IStoreContext _storeContext;
+        private readonly IStoreMappingService _storeMappingService;
+        private readonly IUrlRecordService _urlRecordService;
+        private readonly IWebHelper _webHelper;
+        private readonly IWorkContext _workContext;
+        private readonly IWorkflowMessageService _workflowMessageService;
         private readonly LocalizationSettings _localizationSettings;
-        private readonly CaptchaSettings _captchaSettings;
-
+        private readonly ShoppingCartSettings _shoppingCartSettings;
+        private readonly ICheckoutModelFactory _checkoutModelFactory;
         #endregion
 
         #region Ctor
 
-        public ProductController(IProductModelFactory productModelFactory,
-            IProductService productService,
-            IWorkContext workContext,
-            IStoreContext storeContext,
-            ILocalizationService localizationService,
-            IWebHelper webHelper,
-            IRecentlyViewedProductsService recentlyViewedProductsService,
-            ICompareProductsService compareProductsService,
-            IWorkflowMessageService workflowMessageService,
-            IOrderService orderService,
+        public ProductController(CaptchaSettings captchaSettings,
+            CatalogSettings catalogSettings,
             IAclService aclService,
-            IStoreMappingService storeMappingService,
-            IPermissionService permissionService,
+            ICompareProductsService compareProductsService,
             ICustomerActivityService customerActivityService,
             IEventPublisher eventPublisher,
-            CatalogSettings catalogSettings,
-            ShoppingCartSettings shoppingCartSettings,
+            ILocalizationService localizationService,
+            IOrderService orderService,
+            IPermissionService permissionService,
+            IProductModelFactory productModelFactory,
+            IProductService productService,
+            IRecentlyViewedProductsService recentlyViewedProductsService,
+            IStoreContext storeContext,
+            IStoreMappingService storeMappingService,
+            IUrlRecordService urlRecordService,
+            IWebHelper webHelper,
+            IWorkContext workContext,
+            IWorkflowMessageService workflowMessageService,
             LocalizationSettings localizationSettings,
-            CaptchaSettings captchaSettings)
+            ShoppingCartSettings shoppingCartSettings,
+           ICheckoutModelFactory checkoutModelFactory)
         {
-            this._productModelFactory = productModelFactory;
-            this._productService = productService;
-            this._workContext = workContext;
-            this._storeContext = storeContext;
-            this._localizationService = localizationService;
-            this._webHelper = webHelper;
-            this._recentlyViewedProductsService = recentlyViewedProductsService;
-            this._compareProductsService = compareProductsService;
-            this._workflowMessageService = workflowMessageService;
-            this._orderService = orderService;
+            this._captchaSettings = captchaSettings;
+            this._catalogSettings = catalogSettings;
             this._aclService = aclService;
-            this._storeMappingService = storeMappingService;
-            this._permissionService = permissionService;
+            this._compareProductsService = compareProductsService;
             this._customerActivityService = customerActivityService;
             this._eventPublisher = eventPublisher;
-            this._catalogSettings = catalogSettings;
-            this._shoppingCartSettings = shoppingCartSettings;
+            this._localizationService = localizationService;
+            this._orderService = orderService;
+            this._permissionService = permissionService;
+            this._productModelFactory = productModelFactory;
+            this._productService = productService;
+            this._recentlyViewedProductsService = recentlyViewedProductsService;
+            this._storeContext = storeContext;
+            this._storeMappingService = storeMappingService;
+            this._urlRecordService = urlRecordService;
+            this._webHelper = webHelper;
+            this._workContext = workContext;
+            this._workflowMessageService = workflowMessageService;
             this._localizationSettings = localizationSettings;
-            this._captchaSettings = captchaSettings;
+            this._shoppingCartSettings = shoppingCartSettings;
+            this._checkoutModelFactory = checkoutModelFactory;
         }
 
         #endregion
@@ -108,15 +114,6 @@ namespace Nop.Web.Controllers
             if (product == null || product.Deleted)
                 return InvokeHttp404();
 
-            // Remove if you don't want the parent category in the URL
-            var categorySeName = product.ProductCategories
-                .Where(p => !p.Category.Deleted && p.Category.ParentCategoryId == 0)
-                .OrderBy(x => x.DisplayOrder)
-                .FirstOrDefault()?.Category.GetSeName();
-            var path = HttpContext.Request.Path.Value;
-            if (!string.IsNullOrWhiteSpace(categorySeName) && (path.IndexOf('/') == path.LastIndexOf('/') || (path.IndexOf('/') != path.LastIndexOf('/') && path.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries).First() != categorySeName)))
-                return RedirectToRoute("ProductWithCategory", new {CategorySeName = categorySeName, SeName = product.GetSeName()});
-
             var notAvailable =
                 //published?
                 (!product.Published && !_catalogSettings.AllowViewUnpublishedProductPage) ||
@@ -125,7 +122,7 @@ namespace Nop.Web.Controllers
                 //Store mapping
                 !_storeMappingService.Authorize(product) ||
                 //availability dates
-                !product.IsAvailable();
+                !_productService.ProductIsAvailable(product);
             //Check whether the current user has a "Manage products" permission (usually a store owner)
             //We should allows him (her) to use "Preview" functionality
             if (notAvailable && !_permissionService.Authorize(StandardPermissionProvider.ManageProducts))
@@ -136,9 +133,10 @@ namespace Nop.Web.Controllers
             {
                 //is this one an associated products?
                 var parentGroupedProduct = _productService.GetProductById(product.ParentGroupedProductId);
-                return parentGroupedProduct == null ? 
-                    RedirectToRoute("HomePage") : 
-                    RedirectToRoute("Product", new {SeName = parentGroupedProduct.GetSeName()});
+                if (parentGroupedProduct == null)
+                    return RedirectToRoute("HomePage");
+
+                return RedirectToRoute("Product", new { SeName = _urlRecordService.GetSeName(parentGroupedProduct) });
             }
 
             //update existing shopping cart or wishlist  item?
@@ -150,8 +148,15 @@ namespace Nop.Web.Controllers
                     .ToList();
                 updatecartitem = cart.FirstOrDefault(x => x.Id == updatecartitemid);
                 //not found?
-                if (updatecartitem == null || product.Id != updatecartitem.ProductId)
-                    return RedirectToRoute("Product", new { SeName = product.GetSeName() });
+                if (updatecartitem == null)
+                {
+                    return RedirectToRoute("Product", new { SeName = _urlRecordService.GetSeName(product) });
+                }
+                //is it this product?
+                if (product.Id != updatecartitem.ProductId)
+                {
+                    return RedirectToRoute("Product", new { SeName = _urlRecordService.GetSeName(product) });
+                }
             }
 
             //save as recently viewed
@@ -169,7 +174,8 @@ namespace Nop.Web.Controllers
             }
 
             //activity log
-            _customerActivityService.InsertActivity("PublicStore.ViewProduct", _localizationService.GetResource("ActivityLog.PublicStore.ViewProduct"), product.Name);
+            _customerActivityService.InsertActivity("PublicStore.ViewProduct",
+                string.Format(_localizationService.GetResource("ActivityLog.PublicStore.ViewProduct"), product.Name), product);
 
             //model
             var model = _productModelFactory.PrepareProductDetailsModel(product, updatecartitem, false);
@@ -178,7 +184,26 @@ namespace Nop.Web.Controllers
 
             return View(productTemplateViewPath, model);
         }
-        
+
+        public virtual IActionResult GetShippingOptions(int productId)
+        {
+            var product = _productService.GetProductById(productId);
+            if (product == null)
+                //no product found
+                return null;
+
+            ShoppingCartItem item = new ShoppingCartItem()
+            {
+                Product = product,
+                Customer = _workContext.CurrentCustomer
+            };
+            List<ShoppingCartItem> list = new List<ShoppingCartItem>();
+            list.Add(item);
+            var model = _checkoutModelFactory.PrepareShippingMethodModel(list, _workContext.CurrentCustomer.ShippingAddress!=null ? _workContext.CurrentCustomer.ShippingAddress: new  Core.Domain.Common.Address() );
+
+            return View("_ProductShippingCosts", model);
+        }
+
         #endregion
 
         #region Recently viewed products
@@ -223,7 +248,7 @@ namespace Nop.Web.Controllers
         public virtual IActionResult NewProductsRss()
         {
             var feed = new RssFeed(
-                $"{_storeContext.CurrentStore.GetLocalized(x => x.Name)}: New products", 
+                $"{_localizationService.GetLocalized(_storeContext.CurrentStore, x => x.Name)}: New products",
                 "Information about products",
                 new Uri(_webHelper.GetStoreLocation()),
                 DateTime.UtcNow);
@@ -241,9 +266,9 @@ namespace Nop.Web.Controllers
                 pageSize: _catalogSettings.NewProductsNumber);
             foreach (var product in products)
             {
-                var productUrl = Url.RouteUrl("Product", new {SeName = product.GetSeName()}, _webHelper.IsCurrentConnectionSecured() ? "https" : "http");
-                var productName = product.GetLocalized(x => x.Name);
-                var productDescription = product.GetLocalized(x => x.ShortDescription);
+                var productUrl = Url.RouteUrl("Product", new { SeName = _urlRecordService.GetSeName(product) }, _webHelper.CurrentRequestProtocol);
+                var productName = _localizationService.GetLocalized(product, x => x.Name);
+                var productDescription = _localizationService.GetLocalized(product, x => x.ShortDescription);
                 var item = new RssItem(productName, productDescription, new Uri(productUrl), $"urn:store:{_storeContext.CurrentStore.Id}:newProducts:product:{product.Id}", product.CreatedOnUtc);
                 items.Add(item);
                 //uncomment below if you want to add RSS enclosure for pictures
@@ -288,6 +313,14 @@ namespace Nop.Web.Controllers
 
             //default value
             model.AddProductReview.Rating = _catalogSettings.DefaultProductRatingValue;
+
+            //default value for all additional review types
+            if (model.ReviewTypeList.Count > 0)
+                foreach (var additionalProductReview in model.AddAdditionalProductReviewList)
+                {
+                    additionalProductReview.Rating = additionalProductReview.IsRequired ? _catalogSettings.DefaultProductRatingValue : 0;
+                }
+
             return View(model);
         }
 
@@ -343,8 +376,20 @@ namespace Nop.Web.Controllers
                     CreatedOnUtc = DateTime.UtcNow,
                     StoreId = _storeContext.CurrentStore.Id,
                 };
+
                 product.ProductReviews.Add(productReview);
-                _productService.UpdateProduct(product);
+
+                //add product review and review type mapping                
+                foreach (var additionalReview in model.AddAdditionalProductReviewList)
+                {
+                    var additionalProductReview = new ProductReviewReviewTypeMapping
+                    {
+                        ProductReviewId = productReview.Id,
+                        ReviewTypeId = additionalReview.ReviewTypeId,
+                        Rating = additionalReview.Rating
+                    };
+                    productReview.ProductReviewReviewTypeMappingEntries.Add(additionalProductReview);
+                }
 
                 //update product totals
                 _productService.UpdateProductReviewTotals(product);
@@ -354,7 +399,8 @@ namespace Nop.Web.Controllers
                     _workflowMessageService.SendProductReviewNotificationMessage(productReview, _localizationSettings.DefaultAdminLanguageId);
 
                 //activity log
-                _customerActivityService.InsertActivity("PublicStore.AddProductReview", _localizationService.GetResource("ActivityLog.PublicStore.AddProductReview"), product.Name);
+                _customerActivityService.InsertActivity("PublicStore.AddProductReview",
+                    string.Format(_localizationService.GetResource("ActivityLog.PublicStore.AddProductReview"), product.Name), product);
 
                 //raise event
                 if (productReview.IsApproved)
@@ -491,7 +537,7 @@ namespace Nop.Web.Controllers
             {
                 ModelState.AddModelError("", _localizationService.GetResource("Products.EmailAFriend.OnlyRegisteredUsers"));
             }
-            
+
             if (ModelState.IsValid)
             {
                 //email
@@ -513,7 +559,7 @@ namespace Nop.Web.Controllers
         }
 
         #endregion
-        
+
         #region Comparing products
 
         [HttpPost]
@@ -537,7 +583,8 @@ namespace Nop.Web.Controllers
             _compareProductsService.AddProductToCompareList(productId);
 
             //activity log
-            _customerActivityService.InsertActivity("PublicStore.AddToCompareList", _localizationService.GetResource("ActivityLog.PublicStore.AddToCompareList"), product.Name);
+            _customerActivityService.InsertActivity("PublicStore.AddToCompareList",
+                string.Format(_localizationService.GetResource("ActivityLog.PublicStore.AddToCompareList"), product.Name), product);
 
             return Json(new
             {
@@ -579,7 +626,7 @@ namespace Nop.Web.Controllers
             //ACL and store mapping
             products = products.Where(p => _aclService.Authorize(p) && _storeMappingService.Authorize(p)).ToList();
             //availability dates
-            products = products.Where(p => p.IsAvailable()).ToList();
+            products = products.Where(p => _productService.ProductIsAvailable(p)).ToList();
 
             //prepare model
             _productModelFactory.PrepareProductOverviewModels(products, prepareSpecificationAttributes: true)

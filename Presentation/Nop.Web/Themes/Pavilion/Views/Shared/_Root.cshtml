@@ -15,14 +15,14 @@
     string stickyLogoClass = isLogoStickyOnMobileDevice ? "mobile-sticky-logo" : string.Empty;
 }
 
-@await Component.InvokeAsync("Widget", new { widgetZone = "body_start_html_tag_after" })
+@await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.BodyStartHtmlTagAfter })
 @await Html.PartialAsync("_Notifications")
 @await Html.PartialAsync("_JavaScriptDisabledWarning")
 @await Html.PartialAsync("_OldInternetExplorerWarning")
 
 <div class="master-wrapper-page @stickyLogoClass">
     @await Html.PartialAsync("_Header")
-    <script type="text/javascript" asp-location="Footer" >
+    <script asp-location="Footer">
         AjaxCart.init(false, '.header-links .cart-qty', '.header-links .wishlist-qty', '#flyout-cart');
     </script>
     <div class="overlayOffCanvas"></div>
@@ -49,7 +49,7 @@
         </div>
     </div>
     <div class="master-wrapper-content">
-        @await Component.InvokeAsync("Widget", new { widgetZone = "content_before" })
+        @await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.ContentBefore })
 		@await Component.InvokeAsync("Widget", new { widgetZone = "pavilion_color_squares" })
 
         @if (IsSectionDefined("Breadcrumb"))
@@ -59,7 +59,7 @@
         <div class="master-column-wrapper">
             @RenderBody()
         </div>
-        @await Component.InvokeAsync("Widget", new { widgetZone = "content_after" })
+        @await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.ContentAfter })
     </div>
     @if (isHomePage)
     {
@@ -70,4 +70,4 @@
 </div>
 
 @await Component.InvokeAsync("EuCookieLaw")
-@await Component.InvokeAsync("Widget", new { widgetZone = "body_end_html_tag_before" })
+@await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.BodyEndHtmlTagBefore })

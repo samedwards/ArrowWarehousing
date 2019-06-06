@@ -2,10 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Template;
-using Nop.Core;
 using Nop.Core.Data;
 using Nop.Core.Domain.Localization;
 using Nop.Core.Infrastructure;
@@ -24,17 +22,6 @@ namespace Nop.Web.Framework.Seo
 
         private readonly IRouter _target;
 
-        private readonly List<string> _redirectHomeSlugs = new List<string>
-        {
-            "best-sales",
-            "forklifts",
-            "niuli-25-tonne-diesel-forklift",
-            "manufacturers",
-            "prices-drop",
-            "supplier",
-            "safes"
-        };
-
         #endregion
 
         #region Ctor
@@ -44,12 +31,12 @@ namespace Nop.Web.Framework.Seo
         /// </summary>
         /// <param name="target">Target</param>
         /// <param name="routeName">Route name</param>
-        /// <param name="routeTemplate">Route remplate</param>
+        /// <param name="routeTemplate">Route template</param>
         /// <param name="defaults">Defaults</param>
         /// <param name="constraints">Constraints</param>
         /// <param name="dataTokens">Data tokens</param>
         /// <param name="inlineConstraintResolver">Inline constraint resolver</param>
-        public GenericPathRoute(IRouter target, string routeName, string routeTemplate, RouteValueDictionary defaults, 
+        public GenericPathRoute(IRouter target, string routeName, string routeTemplate, RouteValueDictionary defaults,
             IDictionary<string, object> constraints, RouteValueDictionary dataTokens, IInlineConstraintResolver inlineConstraintResolver)
             : base(target, routeName, routeTemplate, defaults, constraints, dataTokens, inlineConstraintResolver)
         {
@@ -93,48 +80,15 @@ namespace Nop.Web.Framework.Seo
         /// <returns>Task of the routing</returns>
         public override Task RouteAsync(RouteContext context)
         {
-            if (!DataSettingsHelper.DatabaseIsInstalled())
+            if (!DataSettingsManager.DatabaseIsInstalled)
                 return Task.CompletedTask;
 
             //try to get slug from the route data
             var routeValues = GetRouteValues(context);
             if (!routeValues.TryGetValue("GenericSeName", out object slugValue) || string.IsNullOrEmpty(slugValue as string))
-            {
-                var slugTokens = context.HttpContext.Request.Path.Value.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-                if (slugTokens.Length < 2)
-                    return Task.CompletedTask;
+                return Task.CompletedTask;
 
-                var routeData = GetProductWithCategoryRouteData(context, slugTokens);
-                if (routeData == null)
-                    return Task.CompletedTask;
-
-                context.RouteData = routeData;
-                return _target.RouteAsync(context);
-            }
-
-            var slug = (string) slugValue;
-
-            //virtual directory path
-            var pathBase = context.HttpContext.Request.PathBase;
-
-            if (slug == "pallet-jacks-stackers" || slug == "forklift-ramps")
-            {
-                var action = slug == "pallet-jacks-stackers" ? "pallet-stackers" : "container-ramps";
-                var redirectionRouteData = new RouteData(context.RouteData);
-                redirectionRouteData.Values["controller"] = "Common";
-                redirectionRouteData.Values["action"] = "InternalRedirect";
-                redirectionRouteData.Values["url"] = $"{pathBase}/{action}";
-                redirectionRouteData.Values["permanentRedirect"] = true;
-                context.HttpContext.Items["nop.RedirectFromGenericPathRoute"] = true;
-                context.RouteData = redirectionRouteData;
-                return _target.RouteAsync(context);
-            }
-
-            if (_redirectHomeSlugs.Contains(slug))
-            {
-                context.RouteData = RedirectHome(context);
-                return _target.RouteAsync(context);
-            }
+            var slug = slugValue as string;
 
             //performance optimization, we load a cached verion here. It reduces number of SQL requests for each page load
             var urlRecordService = EngineContext.Current.Resolve<IUrlRecordService>();
@@ -145,6 +99,9 @@ namespace Nop.Web.Framework.Seo
             //no URL record found
             if (urlRecord == null)
                 return Task.CompletedTask;
+
+            //virtual directory path
+            var pathBase = context.HttpContext.Request.PathBase;
 
             //if URL record is not active let's find the latest one
             if (!urlRecord.IsActive)
@@ -166,8 +123,7 @@ namespace Nop.Web.Framework.Seo
 
             //ensure that the slug is the same for the current language, 
             //otherwise it can cause some issues when customers choose a new language but a slug stays the same
-            var workContext = EngineContext.Current.Resolve<IWorkContext>();
-            var slugForCurrentLanguage = SeoExtensions.GetSeName(urlRecord.EntityId, urlRecord.EntityName, workContext.WorkingLanguage.Id);
+            var slugForCurrentLanguage = urlRecordService.GetSeName(urlRecord.EntityId, urlRecord.EntityName);
             if (!string.IsNullOrEmpty(slugForCurrentLanguage) && !slugForCurrentLanguage.Equals(slug, StringComparison.InvariantCultureIgnoreCase))
             {
                 //we should make validation above because some entities does not have SeName for standard (Id = 0) language (e.g. news, blog posts)
@@ -191,6 +147,12 @@ namespace Nop.Web.Framework.Seo
                     currentRouteData.Values["controller"] = "Product";
                     currentRouteData.Values["action"] = "ProductDetails";
                     currentRouteData.Values["productid"] = urlRecord.EntityId;
+                    currentRouteData.Values["SeName"] = urlRecord.Slug;
+                    break;
+                case "producttag":
+                    currentRouteData.Values["controller"] = "Catalog";
+                    currentRouteData.Values["action"] = "ProductsByTag";
+                    currentRouteData.Values["productTagId"] = urlRecord.EntityId;
                     currentRouteData.Values["SeName"] = urlRecord.Slug;
                     break;
                 case "category":
@@ -231,7 +193,8 @@ namespace Nop.Web.Framework.Seo
                     break;
                 default:
                     //no record found, thus generate an event this way developers could insert their own types
-                    EngineContext.Current.Resolve<IEventPublisher>().Publish(new CustomUrlRecordEntityNameRequested(currentRouteData, urlRecord));
+                    EngineContext.Current.Resolve<IEventPublisher>()
+                        ?.Publish(new CustomUrlRecordEntityNameRequestedEvent(currentRouteData, urlRecord));
                     break;
             }
             context.RouteData = currentRouteData;
@@ -239,127 +202,6 @@ namespace Nop.Web.Framework.Seo
             //route request
             return _target.RouteAsync(context);
         }
-
-        private static RouteData RedirectHome(RouteContext context)
-        {
-            var redirectionRouteData = new RouteData(context.RouteData);
-            redirectionRouteData.Values["controller"] = "Common";
-            redirectionRouteData.Values["action"] = "InternalRedirect";
-            redirectionRouteData.Values["url"] = context.HttpContext.Request.PathBase;
-            redirectionRouteData.Values["permanentRedirect"] = true;
-            context.HttpContext.Items["nop.RedirectFromGenericPathRoute"] = true;
-            return redirectionRouteData;
-        }
-
-        private RouteData GetProductWithCategoryRouteData(RouteContext context, IReadOnlyCollection<string> slugTokens)
-        {
-            var urlRecordService = EngineContext.Current.Resolve<IUrlRecordService>();
-            var productToken = slugTokens.Last();
-
-            if (_redirectHomeSlugs.Contains(productToken))
-                return RedirectHome(context);
-
-            if (productToken == "extended-container-ramp")
-            {
-                var redirectionRouteData = new RouteData(context.RouteData);
-                redirectionRouteData.Values["controller"] = "Common";
-                redirectionRouteData.Values["action"] = "InternalRedirect";
-                redirectionRouteData.Values["url"] = $"{context.HttpContext.Request.PathBase}/container-ramp-extended";
-                redirectionRouteData.Values["permanentRedirect"] = true;
-                context.HttpContext.Items["nop.RedirectFromGenericPathRoute"] = true;
-
-                return redirectionRouteData;
-            }
-
-            var productRecord = urlRecordService.GetBySlug(productToken);
-            if (productRecord == null || !productRecord.IsActive || productRecord.EntityName.ToLowerInvariant() != "product")
-                return null;
-
-            var currentRouteData = new RouteData(context.RouteData);
-            currentRouteData.Values["controller"] = "Product";
-            currentRouteData.Values["action"] = "ProductDetails";
-            currentRouteData.Values["productid"] = productRecord.EntityId;
-            currentRouteData.Values["SeName"] = productRecord.Slug;
-
-            return currentRouteData;
-        }
-
-//        REPLACE WITH ABOVE METHOD IF NESTING FOLDERS
-//        private static RouteData GetProductWithCategoryRouteData(RouteContext context, IReadOnlyCollection<string> slugTokens)
-//        {
-//            var urlRecordService = EngineContext.Current.Resolve<IUrlRecordService>();
-//            var categoryTokens = slugTokens.Take(slugTokens.Count - 1);
-//            var productToken = slugTokens.ElementAt(slugTokens.Count - 1);
-//            var allMatch = true;
-//            var categoryIds = new List<int>();
-//            foreach (var categoryToken in categoryTokens)
-//            {
-//                var categoryRecord = urlRecordService.GetBySlug(categoryToken);
-//                if (categoryRecord == null ||
-//                    !categoryRecord.IsActive ||
-//                    categoryRecord.EntityName.ToLowerInvariant() != "category")
-//                    allMatch = false;
-//
-//                if (!allMatch) break;
-//
-//                categoryIds.Add(categoryRecord.EntityId);
-//            }
-//            var productRecord = urlRecordService.GetBySlug(productToken);
-//            if (productRecord == null ||
-//                !productRecord.IsActive ||
-//                productRecord.EntityName.ToLowerInvariant() != "product")
-//                allMatch = false;
-//
-//            if (allMatch)
-//            {
-//                var categoryService = EngineContext.Current.Resolve<ICategoryService>();
-//                var productService = EngineContext.Current.Resolve<IProductService>();
-//                var product = productService.GetProductById(productRecord.EntityId);
-//                if (product != null)
-//                {
-//                    var firstCategory = product.ProductCategories
-//                        .Where(p => !p.Category.Deleted)
-//                        .OrderBy(x => x.DisplayOrder).FirstOrDefault();
-//                    var hierarchyMatch = true;
-//                    if (firstCategory != null &&
-//                        firstCategory.CategoryId == categoryIds[categoryIds.Count - 1])
-//                    {
-//                        for (var j = categoryIds.Count - 1; j >= 0; j--)
-//                        {
-//                            var current = categoryService.GetCategoryById(categoryIds[j]);
-//                            if (current != null)
-//                            {
-//                                if (j > 0 && current.ParentCategoryId != categoryIds[j - 1])
-//                                    hierarchyMatch = false;
-//                            }
-//                            else
-//                            {
-//                                hierarchyMatch = false;
-//                            }
-//
-//                            if (!hierarchyMatch) break;
-//                        }
-//                    }
-//                    else
-//                    {
-//                        hierarchyMatch = false;
-//                    }
-//
-//                    if (hierarchyMatch)
-//                    {
-//                        var currentRouteData = new RouteData(context.RouteData);
-//                        currentRouteData.Values["controller"] = "Product";
-//                        currentRouteData.Values["action"] = "ProductDetails";
-//                        currentRouteData.Values["productid"] = productRecord.EntityId;
-//                        currentRouteData.Values["SeName"] = productRecord.Slug;
-//
-//                        return currentRouteData;
-//                    }
-//                }
-//            }
-//
-//            return null;
-//        }
 
         #endregion
     }

@@ -41,7 +41,7 @@ namespace Nop.Web.Infrastructure
 
             //shopping cart
             routeBuilder.MapLocalizedRoute("ShoppingCart", "cart/",
-				new { controller = "ShoppingCart", action = "Cart" });
+				new { controller = "ShoppingCart", action = "Cart" });            
 
             //estimate shipping
             routeBuilder.MapLocalizedRoute("EstimateShipping", "cart/estimateshipping",
@@ -62,7 +62,7 @@ namespace Nop.Web.Infrastructure
 				new { controller = "Order", action = "CustomerOrders" });
 
             //contact us
-            routeBuilder.MapLocalizedRoute("ContactUs", "contact-us",
+            routeBuilder.MapLocalizedRoute("ContactUs", "contactus",
 				new { controller = "Common", action = "ContactUs" });
 
             //sitemap
@@ -71,7 +71,7 @@ namespace Nop.Web.Infrastructure
 
             //product search
             routeBuilder.MapLocalizedRoute("ProductSearch", "search/",
-				new { controller = "Catalog", action = "Search" });
+				new { controller = "Catalog", action = "Search" });                     
 
             routeBuilder.MapLocalizedRoute("ProductSearchAutoComplete", "catalog/searchtermautocomplete",
 				new { controller = "Catalog", action = "SearchTermAutoComplete" });
@@ -93,7 +93,7 @@ namespace Nop.Web.Infrastructure
 				new { controller = "Product", action = "RecentlyViewedProducts" });
 
             //new products
-            routeBuilder.MapLocalizedRoute("NewProducts", "new-products/",
+            routeBuilder.MapLocalizedRoute("NewProducts", "newproducts/",
 				new { controller = "Product", action = "NewProducts" });
 
             //blog
@@ -131,10 +131,6 @@ namespace Nop.Web.Infrastructure
             //add product to cart (with attributes and options). used on the product details pages.
             routeBuilder.MapLocalizedRoute("AddProductToCart-Details", "addproducttocart/details/{productId:min(0)}/{shoppingCartTypeId:min(0)}",
 				new { controller = "ShoppingCart", action = "AddProductToCart_Details" });
-
-            //product tags
-            routeBuilder.MapLocalizedRoute("ProductsByTag", "producttag/{productTagId:min(0)}/{SeName?}",
-				new { controller = "Catalog", action = "ProductsByTag" });
 
             //comparing products
             routeBuilder.MapLocalizedRoute("AddProductToCompare", "compareproducts/add/{productId:min(0)}",
@@ -343,6 +339,14 @@ namespace Nop.Web.Infrastructure
             //vendor info
             routeBuilder.MapLocalizedRoute("CustomerVendorInfo", "customer/vendorinfo",
 				new { controller = "Vendor", action = "Info" });
+
+            //customer GDPR
+            routeBuilder.MapLocalizedRoute("GdprTools", "customer/gdpr",
+                new { controller = "Customer", action = "GdprTools" });
+
+            //customer check gift card balance 
+            routeBuilder.MapLocalizedRoute("CheckGiftCardBalance", "customer/CheckGiftCardBalance",
+                new { controller = "Customer", action = "CheckGiftCardBalance" });
 
             //poll vote AJAX link
             routeBuilder.MapLocalizedRoute("PollVote", "poll/vote",
