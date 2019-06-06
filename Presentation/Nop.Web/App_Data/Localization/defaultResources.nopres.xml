@@ -16263,11 +16263,23 @@
   <LocaleResource Name="PDFInvoice.Address2">
     <Value>Address 2: {0}</Value>
   </LocaleResource>
+  <LocaleResource Name="PDFInvoice.BankAccount">
+    <Value>Bank Account:</Value>
+  </LocaleResource>
+  <LocaleResource Name="PDFInvoice.BankAccountNumber">
+    <Value>02-1244-0159346-000</Value>
+  </LocaleResource>
   <LocaleResource Name="PDFInvoice.BillingInformation">
     <Value>Billing Information:</Value>
   </LocaleResource>
+  <LocaleResource Name="PDFInvoice.City">
+    <Value>Auckland 0932</Value>
+  </LocaleResource>
   <LocaleResource Name="PDFInvoice.Company">
     <Value>Company: {0}</Value>
+  </LocaleResource>
+  <LocaleResource Name="PDFInvoice.CompanyName">
+    <Value>Warwick Edwards Services Limited T/A Arrow Warehousing</Value>
   </LocaleResource>
   <LocaleResource Name="PDFInvoice.CreatedOn">
     <Value>Created on</Value>
@@ -16275,11 +16287,20 @@
   <LocaleResource Name="PDFInvoice.Discount">
     <Value>Discount:</Value>
   </LocaleResource>
+  <LocaleResource Name="PDFInvoice.Email">
+    <Value>sales@arrowwarehousing.co.nz</Value>
+  </LocaleResource>
   <LocaleResource Name="PDFInvoice.Fax">
     <Value>Fax: {0}</Value>
   </LocaleResource>
   <LocaleResource Name="PDFInvoice.GiftCardInfo">
     <Value>Gift card ({0}):</Value>
+  </LocaleResource>
+  <LocaleResource Name="PDFInvoice.GST">
+    <Value>GST# 098300295:</Value>
+  </LocaleResource>
+  <LocaleResource Name="PDFInvoice.Information">
+    <Value>Please include your order number as reference.</Value>
   </LocaleResource>
   <LocaleResource Name="PDFInvoice.Name">
     <Value>Name: {0}</Value>
@@ -16347,8 +16368,14 @@
   <LocaleResource Name="PDFInvoice.SKU">
     <Value>SKU</Value>
   </LocaleResource>
+  <LocaleResource Name="PDFInvoice.StreetAddress">
+    <Value>52 Anvil Road</Value>
+  </LocaleResource>
   <LocaleResource Name="PDFInvoice.Sub-Total">
     <Value>Sub-total:</Value>
+  </LocaleResource>
+  <LocaleResource Name="PDFInvoice.Suburb">
+    <Value>Silverdale</Value>
   </LocaleResource>
   <LocaleResource Name="PDFInvoice.Tax">
     <Value>Tax:</Value>

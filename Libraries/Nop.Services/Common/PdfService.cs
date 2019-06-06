@@ -1134,18 +1134,18 @@ namespace Nop.Services.Common
             cellHeader.Phrase.Add(GetParagraph("PDFInvoice.OrderDate", lang, font, _dateTimeHelper.ConvertToUserTime(order.CreatedOnUtc, DateTimeKind.Utc).ToString("D", new CultureInfo(lang.LanguageCulture))));
             cellHeader.Phrase.Add(new Phrase(Environment.NewLine));
             cellHeader.Phrase.Add(new Phrase(Environment.NewLine));
-            cellHeader.Phrase.Add(new Phrase("Warwick Edwards Services Limited T/A Arrow Warehousing", font));
+            cellHeader.Phrase.Add(new Phrase(_localizationService.GetResource("PDFInvoice.CompanyName", lang.Id), font));
             cellHeader.Phrase.Add(new Phrase(Environment.NewLine));
-            cellHeader.Phrase.Add(new Phrase("52 Anvil Road", font));
+            cellHeader.Phrase.Add(new Phrase(_localizationService.GetResource("PDFInvoice.StreetAddress", lang.Id), font));
             cellHeader.Phrase.Add(new Phrase(Environment.NewLine));
-            cellHeader.Phrase.Add(new Phrase("Silverdale", font));
+            cellHeader.Phrase.Add(new Phrase(_localizationService.GetResource("PDFInvoice.Suburb", lang.Id), font));
             cellHeader.Phrase.Add(new Phrase(Environment.NewLine));
-            cellHeader.Phrase.Add(new Phrase("Auckland 0932", font));
+            cellHeader.Phrase.Add(new Phrase(_localizationService.GetResource("PDFInvoice.City", lang.Id), font));
             cellHeader.Phrase.Add(new Phrase(Environment.NewLine));
-            cellHeader.Phrase.Add(new Phrase("GST# 098300295", font));
+            cellHeader.Phrase.Add(new Phrase(_localizationService.GetResource("PDFInvoice.GST", lang.Id), font));
             cellHeader.Phrase.Add(new Phrase(Environment.NewLine));
             cellHeader.Phrase.Add(new Phrase(Environment.NewLine));
-            cellHeader.Phrase.Add(new Phrase("sales@arrowwarehousing.co.nz", font));
+            cellHeader.Phrase.Add(new Phrase(_localizationService.GetResource("PDFInvoice.Email", lang.Id), font));
             cellHeader.Phrase.Add(new Phrase(Environment.NewLine));
             cellHeader.Phrase.Add(new Phrase(store.CompanyPhoneNumber, font));
             cellHeader.Phrase.Add(new Phrase(Environment.NewLine));
@@ -1153,12 +1153,12 @@ namespace Nop.Services.Common
 
             if (order.PaymentMethodSystemName == "Payments.CheckMoneyOrder")
             {
-                cellHeader.Phrase.Add(new Phrase("Bank account:", font));
+                cellHeader.Phrase.Add(new Phrase(_localizationService.GetResource("PDFInvoice.BankAccount", lang.Id), font));
                 cellHeader.Phrase.Add(new Phrase(Environment.NewLine));
-                cellHeader.Phrase.Add(new Phrase("12-3119-0195128-00", font));
+                cellHeader.Phrase.Add(new Phrase(_localizationService.GetResource("PDFInvoice.BankAccountNumber", lang.Id), font));
                 cellHeader.Phrase.Add(new Phrase(Environment.NewLine));
                 cellHeader.Phrase.Add(new Phrase(Environment.NewLine));
-                cellHeader.Phrase.Add(new Phrase("Please include your order number as reference.", font));
+                cellHeader.Phrase.Add(new Phrase(_localizationService.GetResource("PDFInvoice.Information", lang.Id), font));
                 cellHeader.Phrase.Add(new Phrase(Environment.NewLine));
                 cellHeader.Phrase.Add(new Phrase(Environment.NewLine));
             }
