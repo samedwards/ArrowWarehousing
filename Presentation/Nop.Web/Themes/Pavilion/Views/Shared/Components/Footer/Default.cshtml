@@ -79,19 +79,27 @@
                     <strong>@T("Footer.MyAccount")</strong>
                 </div>
                 <ul class="list">
-                    <li><a href="@Url.RouteUrl("CustomerInfo")">@T("Account.CustomerInfo")</a></li>
-                    <li><a href="@Url.RouteUrl("CustomerAddresses")">@T("Account.CustomerAddresses")</a></li>
-                    <li><a href="@Url.RouteUrl("CustomerOrders")">@T("Account.CustomerOrders")</a></li>
-                    
-                    @if (Model.ShoppingCartEnabled)
+                    @if (Model.DisplayCustomerInfoFooterItem)
+                    {
+                        <li><a href="@Url.RouteUrl("CustomerInfo")">@T("Account.CustomerInfo")</a></li>
+                    }
+                    @if (Model.DisplayCustomerAddressesFooterItem)
+                    {
+                        <li><a href="@Url.RouteUrl("CustomerAddresses")">@T("Account.CustomerAddresses")</a></li>
+                    }
+                    @if (Model.DisplayCustomerOrdersFooterItem)
+                    {
+                        <li><a href="@Url.RouteUrl("CustomerOrders")">@T("Account.CustomerOrders")</a></li>
+                    }
+                    @if (Model.ShoppingCartEnabled && Model.DisplayShoppingCartFooterItem)
                     {
                         <li><a href="@Url.RouteUrl("ShoppingCart")">@T("ShoppingCart")</a></li>
                     }
-                    @if (Model.WishlistEnabled)
+                    @if (Model.WishlistEnabled && Model.DisplayWishlistFooterItem)
                     {
                         <li><a href="@Url.RouteUrl("Wishlist")">@T("Wishlist")</a></li>
                     }
-                    @if (Model.AllowCustomersToApplyForVendorAccount)
+                    @if (Model.AllowCustomersToApplyForVendorAccount && Model.DisplayApplyVendorAccountFooterItem)
                     {
                         <li><a href="@Url.RouteUrl("ApplyVendorAccount")">@T("Vendors.ApplyAccount")</a></li>
                     }
@@ -151,5 +159,19 @@
             </div>
         </div>
     </div>
-    @await Component.InvokeAsync("Widget", new { widgetZone = "footer" })
+    @await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.Footer })
 </div>
+<script>
+  window.renderBadge = function() {
+    var ratingBadgeContainer = document.createElement("div");
+      document.body.appendChild(ratingBadgeContainer);
+      window.gapi.load('ratingbadge', function() {
+        window.gapi.ratingbadge.render(
+          ratingBadgeContainer, {
+            // REQUIRED
+              "merchant_id": 127847802
+          });
+     });
+  }
+</script>
+<!-- END GCR Badge Code -->

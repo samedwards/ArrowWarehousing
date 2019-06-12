@@ -38,12 +38,13 @@
                             <col width="1" />
                             <col width="1" />
                             <col />
+                            <col />
                         </colgroup>
                         <thead>
                             <tr>
                                 <th><span class="item-count">#</span></th>
                                 <th class="date" data-hide="w410, w480, w580">
-                                    @T("RewardPoints.Fields.Date")
+                                	@T("RewardPoints.Fields.CreatedDate")
                                 </th>
                                 <th class="points">
                                     @T("RewardPoints.Fields.Points")
@@ -51,9 +52,12 @@
                                 <th class="points-balance" data-hide="w410">
                                     @T("RewardPoints.Fields.PointsBalance")
                                 </th>
-                                <th class="message" data-hide="w410, w480">
+                                <th class="message" data-hide="w410, w480, w580, w768">
                                     @T("RewardPoints.Fields.Message")
-                                </th>
+	                            </th>
+	                            <th class="endDate" data-hide="w410, w480, w580">
+	                                @T("RewardPoints.Fields.EndDate")
+	                            </th>
                             </tr>
                         </thead>
                         <tbody>
@@ -73,7 +77,10 @@
                                     </td>
                                     <td class="message">
                                         @item.Message
-                                    </td>
+	                                </td>
+	                                <td class="endDate">
+	                                    @item.EndDate
+	                                </td>
                                 </tr>
                             }
                         </tbody>

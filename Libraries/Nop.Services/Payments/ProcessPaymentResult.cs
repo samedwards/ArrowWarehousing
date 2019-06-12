@@ -9,10 +9,7 @@ namespace Nop.Services.Payments
     /// </summary>
     public partial class ProcessPaymentResult
     {
-        /// <summary>
-        /// Ctor
-        /// </summary>
-        public ProcessPaymentResult() 
+        public ProcessPaymentResult()
         {
             this.Errors = new List<string>();
         }
@@ -20,7 +17,7 @@ namespace Nop.Services.Payments
         /// <summary>
         /// Gets a value indicating whether request has been completed successfully
         /// </summary>
-        public bool Success => (!Errors.Any());
+        public bool Success => !Errors.Any();
 
         /// <summary>
         /// Add error
@@ -35,7 +32,7 @@ namespace Nop.Services.Payments
         /// Errors
         /// </summary>
         public IList<string> Errors { get; set; }
-        
+
         /// <summary>
         /// Gets or sets an AVS result
         /// </summary>
@@ -75,7 +72,7 @@ namespace Nop.Services.Payments
         /// Gets or sets the subscription transaction identifier
         /// </summary>
         public string SubscriptionTransactionId { get; set; }
-        
+
         /// <summary>
         /// Gets or sets a value indicating whether storing of credit card number, CVV2 is allowed
         /// </summary>

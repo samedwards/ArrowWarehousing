@@ -1,0 +1,11 @@
+﻿{
+  "Group": "Payment methods",
+  "FriendlyName": "Credit Card",
+  "SystemName": "Payments.eWay",
+  "Version": "2.21",
+  "SupportedVersions": [ "4.10" ],
+  "Author": "nopCommerce team",
+  "DisplayOrder": 1,
+  "FileName": "Nop.Plugin.Payments.eWay.dll",
+  "Description": "This plugin allows paying with eWay"
+}

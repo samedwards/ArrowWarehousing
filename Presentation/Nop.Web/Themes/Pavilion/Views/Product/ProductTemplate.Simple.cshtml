@@ -3,6 +3,7 @@
 @using Nop.Core.Domain.Seo
 @using Nop.Core.Domain.Catalog;
 
+@inject Nop.Core.IWebHelper webHelper
 @inject SeoSettings seoSettings
 @inject CatalogSettings catalogSettings
 
@@ -10,7 +11,7 @@
     Layout = "_ColumnsOne";
 
     //title
-    Html.AddTitleParts(!String.IsNullOrEmpty(Model.MetaTitle) ? Model.MetaTitle : Model.Name);
+    Html.AddTitleParts(!string.IsNullOrEmpty(Model.MetaTitle) ? Model.MetaTitle : Model.Name);
     //meta
     Html.AddMetaDescriptionParts(Model.MetaDescription);
     Html.AddMetaKeywordParts(Model.MetaKeywords);
@@ -22,7 +23,7 @@
     //canonical URL
     if (seoSettings.CanonicalUrlsEnabled)
     {
-        var productUrl = Url.RouteUrl("Product", new { SeName = Model.SeName }, this.Url.ActionContext.HttpContext.Request.Scheme);
+        var productUrl = Url.RouteUrl("Product", new { SeName = Model.SeName }, webHelper.CurrentRequestProtocol).ToLowerInvariant();
         Html.AddCanonicalUrlParts(productUrl, seoSettings.QueryStringInCanonicalUrlsEnabled);
     }
 
@@ -33,7 +34,7 @@
         Html.AddHeadCustomParts("<meta property=\"og:title\" content=\"" + Html.Encode(Model.Name) + "\" />");
         Html.AddHeadCustomParts("<meta property=\"og:description\" content=\"" + Html.Encode(Nop.Core.Html.HtmlHelper.StripTags(Model.MetaDescription)) + "\" />");
         Html.AddHeadCustomParts("<meta property=\"og:image\" content=\"" + Model.DefaultPictureModel.ImageUrl + "\" />");
-        Html.AddHeadCustomParts("<meta property=\"og:url\" content=\"" + this.Url.ActionContext.HttpContext.Request.GetEncodedUrl() + "\" />");
+        Html.AddHeadCustomParts("<meta property=\"og:url\" content=\"" + webHelper.GetThisPageUrl(true) + "\" />");
         Html.AddHeadCustomParts("<meta property=\"og:site_name\" content=\"" + Html.Encode(Model.CurrentStoreName) + "\" />");
     }
 
@@ -45,7 +46,7 @@
         Html.AddHeadCustomParts("<meta property=\"twitter:title\" content=\"" + Html.Encode(Model.Name) + "\" />");
         Html.AddHeadCustomParts("<meta property=\"twitter:description\" content=\"" + Html.Encode(Nop.Core.Html.HtmlHelper.StripTags(Model.MetaDescription)) + "\" />");
         Html.AddHeadCustomParts("<meta property=\"twitter:image\" content=\"" + Model.DefaultPictureModel.ImageUrl + "\" />");
-        Html.AddHeadCustomParts("<meta property=\"twitter:url\" content=\"" + this.Url.ActionContext.HttpContext.Request.GetEncodedUrl() + "\" />");
+        Html.AddHeadCustomParts("<meta property=\"twitter:url\" content=\"" + webHelper.GetThisPageUrl(true) + "\" />");
     }
 }
 <!--product breadcrumb-->
@@ -53,14 +54,14 @@
 {
     @await Html.PartialAsync("_ProductBreadcrumb", Model.Breadcrumb)
 }
-@await Component.InvokeAsync("Widget", new { widgetZone = "productdetails_after_breadcrumb", additionalData = Model.Id })
+@await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.ProductDetailsAfterBreadcrumb, additionalData = Model })
 <div class="page product-details-page">
     <div class="page-body">
-        @await Component.InvokeAsync("Widget", new { widgetZone = "productdetails_top", additionalData = Model.Id })
+        @await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.ProductDetailsTop, additionalData = Model })
         <form asp-route="Product" asp-route-sename="@Model.SeName" method="post" id="product-details-form">
             <div itemscope itemtype="http://schema.org/Product" data-productid="@Model.Id">
                 <div class="product-essential">
-                    @await Component.InvokeAsync("Widget", new { widgetZone = "productdetails_before_pictures", additionalData = Model.Id })
+                    @await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.ProductDetailsBeforePictures, additionalData = Model })
                     @{
                         var cloudZoom = await Component.InvokeAsync("Widget", new { widgetZone = "sevenspikes_cloud_zoom" });
                     }
@@ -70,11 +71,11 @@
                     }
                     else
                     {
-                    	@await Html.PartialAsync("_ProductDetailsPictures", Model)
+                        @await Html.PartialAsync("_ProductDetailsPictures", Model)
                     }
-                    @await Component.InvokeAsync("Widget", new { widgetZone = "productdetails_after_pictures", additionalData = Model.Id })
+                    @await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.ProductDetailsAfterPictures, additionalData = Model })
                     <div class="overview">
-                        @await Component.InvokeAsync("Widget", new { widgetZone = "productdetails_overview_top", additionalData = Model.Id })
+                        @await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.ProductDetailsOverviewTop, additionalData = Model })
                         @await Html.PartialAsync("_Discontinued", Model)
                         <!--manufacturers-->
                         @await Html.PartialAsync("_ProductManufacturers", Model.ProductManufacturers)
@@ -103,6 +104,7 @@
                                 @Html.Raw(Model.ShortDescription)
                             </div>
                         }
+
                         <!--SKU, MAN, GTIN, vendor-->
                         @await Html.PartialAsync("_SKU_Man_GTIN_Ven", Model)
                         <!--sample download-->
@@ -121,6 +123,9 @@
                         }
                         <!--availability-->
                         @await Html.PartialAsync("_Availability", Model)
+                        @await Component.InvokeAsync("ProductShippingCost", new { productId = Model.Id })
+                        @*@Html.ActionLink("test", "GetShippingOptions", "Product", new { productId = Model.Id });*@
+                        @*@await Html.PartialAsync("_ProductShippingCosts", new CheckoutShippingMethodModel())*@
                         <!--add to cart-->
                         @{
                             var dataDictAddToCart = new ViewDataDictionary(ViewData);
@@ -129,7 +134,7 @@
                         }
                         <!--wishlist, compare, email a friend-->
                         <div class="overview-buttons">
-                            @await Component.InvokeAsync("Widget", new { widgetZone = "productdetails_inside_overview_buttons_before", additionalData = Model.Id })
+                            @await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.ProductDetailsInsideOverviewButtonsBefore, additionalData = Model })
                             @{
                                 var dataDictAddToWishlist = new ViewDataDictionary(ViewData);
                                 dataDictAddToWishlist.TemplateInfo.HtmlFieldPrefix = $"addtocart_{Model.Id}";
@@ -137,9 +142,9 @@
                             }
                             @await Html.PartialAsync("_CompareProductsButton", Model)
                             @await Html.PartialAsync("_ProductEmailAFriendButton", Model)
-                            @await Component.InvokeAsync("Widget", new { widgetZone = "productdetails_inside_overview_buttons_after", additionalData = Model.Id })
+                            @await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.ProductDetailsInsideOverviewButtonsAfter, additionalData = Model })
                         </div>
-                        @await Component.InvokeAsync("Widget", new { widgetZone = "productdetails_overview_bottom", additionalData = Model.Id })
+                        @await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.ProductDetailsOverviewBottom, additionalData = Model })
                     </div>
                     <div class="overview-bottom">
                         <!--sharing-->
@@ -151,7 +156,7 @@
                         @await Html.PartialAsync("_DeliveryInfo", Model)
                     </div>
                 </div>
-                
+
                 @{
                     var nopQuickTabsHtml = await Component.InvokeAsync("Widget", new { widgetZone = "productdetails_before_collateral", additionalData = Model.Id });
                 }
@@ -164,14 +169,14 @@
                     {
                         carouselQuickTabsWrapperClass = "two-column-wrapper";
                     }
-                    
+
                     <div class="@carouselQuickTabsWrapperClass">
                         @nopQuickTabsHtml @*nop quick tabs*@
 
                         @productsCarouselHtml @*products carousel for related or also purchased with 1 visible item*@
                     </div>
                 }
-                
+
                 <div class="product-collateral">
                     @if (!String.IsNullOrEmpty(Model.FullDescription))
                     {
@@ -183,10 +188,12 @@
                     @await Html.PartialAsync("_ProductSpecifications", Model.ProductSpecifications)
                     @await Html.PartialAsync("_ProductTags", Model.ProductTags)
                 </div>
+               
+
                 @await Component.InvokeAsync("ProductsAlsoPurchased", new { productId = Model.Id })
                 @await Component.InvokeAsync("RelatedProducts", new { productId = Model.Id })
             </div>
         </form>
-        @await Component.InvokeAsync("Widget", new { widgetZone = "productdetails_bottom", additionalData = Model.Id })
+        @await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.ProductDetailsBottom, additionalData = Model })
     </div>
 </div>

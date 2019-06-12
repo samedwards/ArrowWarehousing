@@ -115,8 +115,8 @@
                         @if (Model.AllowFiles)
                         {
                             //register CSS and JS
-                            Html.AddCssFileParts("~/lib/fineuploader/fineuploader-4.2.2.min.css");
-                            Html.AddScriptParts(ResourceLocation.Footer, "~/lib/fineuploader/jquery.fineuploader-4.2.2.min.js");
+                            Html.AddCssFileParts("~/lib/fineuploader/fine-uploader.min.css");
+                            Html.AddScriptParts(ResourceLocation.Footer, "~/lib/fineuploader/jquery.fine-uploader.min.js");
                             var allowedFileExtensionsList = new List<string>();
                             //allowedFileExtensionsList.Add("jpg");
                             //allowedFileExtensionsList.Add("jpeg");
@@ -161,7 +161,7 @@
                                         </ul>
                                     </div>
                                 </script>
-                                <script type="text/javascript" asp-location="Footer">
+                                <script asp-location="Footer">
                                     $(document).ready(function() {
                                         $("#@(controlId)uploader").fineUploader({
                                             request: {
@@ -173,13 +173,13 @@
                                                 allowedExtensions: [@Html.Raw(allowedFileExtensions)]
                                             }
                                         }).on("complete",
-                                            function(event, id, name, responseJSON, xhr) {
-                                                $("#@(controlId)").val(responseJSON.downloadGuid);
+                                        function(event, id, name, responseJSON, xhr) {
+                                            $("#@(controlId)").val(responseJSON.downloadGuid);
 
-                                                if (responseJSON.message) {
-                                                    alert(responseJSON.message);
-                                                }
-                                            });
+                                            if (responseJSON.message) {
+                                                alert(responseJSON.message);
+                                            }
+                                        });
                                     });
                                 </script>
                             </div>

@@ -1,33 +1,65 @@
-using eWAY.Rapid;
-using eWAY.Rapid.Enums;
-using eWAY.Rapid.Models;
+using System.IO;
+using System.Net;
+using System.Text;
 
 namespace Nop.Plugin.Payments.eWay
 {
     /// <summary>
     /// Summary description for GatewayConnector.
+    /// Copyright Web Active Corporation Pty Ltd  - All rights reserved. 1998-2004
     /// This code is for exclusive use with the eWAY payment gateway
     /// </summary>
     public class GatewayConnector
     {
+        string _uri = string.Empty;
+
+        int _timeout = 36000;
+
         /// <summary>
-        /// The RapidEndpoint of the Eway payment gateway
+        /// The Uri of the Eway payment gateway
         /// </summary>
-        public string RapidEndpoint { get; set; } = string.Empty;
+        public string Uri
+        {
+            get { return _uri; }
+            set { _uri = value; }
+        }
+
+        /// <summary>
+        /// The connection timeout
+        /// </summary>
+        public int ConnectionTimeout
+        {
+            get { return _timeout; }
+            set { _timeout = value; }
+        }
 
         /// <summary>
         /// Do the post to the gateway and retrieve the response
         /// </summary>
         /// <param name="request">Request</param>
         /// <returns>Response</returns>
-        public CreateTransactionResponse ProcessRequest(Transaction request)
+        public GatewayResponse ProcessRequest(GatewayRequest request)
         {
-//            var ewayClient = RapidClientFactory.NewRapidClient("44DD7Cns/tsiCi4GiJSIaM5qGLNMZmdPZ9ADSKSt+ctDUx6SjkGzzi9DVLy4Uoh8GCZ99f", "ZlVMyKbt", RapidEndpoint);
-            var ewayClient = RapidClientFactory.NewRapidClient("44DD7A3Z5yFY0uS6s+PeaUvVI6MrmoZF8BpNE2UY4lvDbbJOdzK0bj3zVLxkfhCH7FMAlo", "K4ReUOmQ", RapidEndpoint);
+            var curentRequest = (HttpWebRequest)WebRequest.Create(_uri);
+            curentRequest.Method = "POST";
+            curentRequest.Timeout = _timeout;
+            curentRequest.ContentType = "application/x-www-form-urlencoded";
+            curentRequest.KeepAlive = false;
 
-            return ewayClient.Create(PaymentMethod.Direct, request);
+            var requestBytes = Encoding.ASCII.GetBytes(request.ToXml());
+            curentRequest.ContentLength = requestBytes.Length;
+
+            // Send the data out over the wire
+            var requestStream = curentRequest.GetRequestStream();
+            requestStream.Write(requestBytes, 0, requestBytes.Length);
+            requestStream.Close();
+
+            var response = (HttpWebResponse)curentRequest.GetResponse();
+
+            using (var sr = new StreamReader(response.GetResponseStream(), Encoding.ASCII))
+            {
+                return new GatewayResponse(sr.ReadToEnd());
+            }
         }
     }
 }
-
-

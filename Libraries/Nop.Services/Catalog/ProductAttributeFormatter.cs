@@ -18,56 +18,49 @@ namespace Nop.Services.Catalog
     /// </summary>
     public partial class ProductAttributeFormatter : IProductAttributeFormatter
     {
-        private readonly IWorkContext _workContext;
-        private readonly IProductAttributeService _productAttributeService;
-        private readonly IProductAttributeParser _productAttributeParser;
+        #region Fields
+
         private readonly ICurrencyService _currencyService;
-        private readonly ILocalizationService _localizationService;
-        private readonly ITaxService _taxService;
-        private readonly IPriceFormatter _priceFormatter;
         private readonly IDownloadService _downloadService;
-        private readonly IWebHelper _webHelper;
+        private readonly ILocalizationService _localizationService;
         private readonly IPriceCalculationService _priceCalculationService;
+        private readonly IPriceFormatter _priceFormatter;
+        private readonly IProductAttributeParser _productAttributeParser;
+        private readonly ITaxService _taxService;
+        private readonly IWebHelper _webHelper;
+        private readonly IWorkContext _workContext;
         private readonly ShoppingCartSettings _shoppingCartSettings;
 
-        /// <summary>
-        /// Ctor
-        /// </summary>
-        /// <param name="workContext">Work context</param>
-        /// <param name="productAttributeService">Product attribute service</param>
-        /// <param name="productAttributeParser">Product attribute parser</param>
-        /// <param name="currencyService">Currency service</param>
-        /// <param name="localizationService">Localization service</param>
-        /// <param name="taxService">Tax service</param>
-        /// <param name="priceFormatter"> Price formatter</param>
-        /// <param name="downloadService">Download service</param>
-        /// <param name="webHelper">Web helper</param>
-        /// <param name="priceCalculationService">Price calculation service</param>
-        /// <param name="shoppingCartSettings">Shopping cart settings</param>
-        public ProductAttributeFormatter(IWorkContext workContext,
-            IProductAttributeService productAttributeService,
-            IProductAttributeParser productAttributeParser,
-            ICurrencyService currencyService,
-            ILocalizationService localizationService,
-            ITaxService taxService,
-            IPriceFormatter priceFormatter,
+        #endregion
+
+        #region Ctor
+
+        public ProductAttributeFormatter(ICurrencyService currencyService,
             IDownloadService downloadService,
-            IWebHelper webHelper,
+            ILocalizationService localizationService,
             IPriceCalculationService priceCalculationService,
+            IPriceFormatter priceFormatter,
+            IProductAttributeParser productAttributeParser,
+            ITaxService taxService,
+            IWebHelper webHelper,
+            IWorkContext workContext,
             ShoppingCartSettings shoppingCartSettings)
         {
-            this._workContext = workContext;
-            this._productAttributeService = productAttributeService;
-            this._productAttributeParser = productAttributeParser;
             this._currencyService = currencyService;
-            this._localizationService = localizationService;
-            this._taxService = taxService;
-            this._priceFormatter = priceFormatter;
             this._downloadService = downloadService;
-            this._webHelper = webHelper;
+            this._localizationService = localizationService;
             this._priceCalculationService = priceCalculationService;
+            this._priceFormatter = priceFormatter;
+            this._productAttributeParser = productAttributeParser;
+            this._taxService = taxService;
+            this._webHelper = webHelper;
+            this._workContext = workContext;
             this._shoppingCartSettings = shoppingCartSettings;
         }
+
+        #endregion
+
+        #region Methods
 
         /// <summary>
         /// Formats attributes
@@ -80,7 +73,7 @@ namespace Nop.Services.Catalog
             var customer = _workContext.CurrentCustomer;
             return FormatAttributes(product, attributesXml, customer);
         }
-        
+
         /// <summary>
         /// Formats attributes
         /// </summary>
@@ -115,7 +108,7 @@ namespace Nop.Services.Catalog
                             if (attribute.AttributeControlType == AttributeControlType.MultilineTextbox)
                             {
                                 //multiline textbox
-                                var attributeName = attribute.ProductAttribute.GetLocalized(a => a.Name, _workContext.WorkingLanguage.Id);
+                                var attributeName = _localizationService.GetLocalized(attribute.ProductAttribute, a => a.Name, _workContext.WorkingLanguage.Id);
 
                                 //encode (if required)
                                 if (htmlEncode)
@@ -127,7 +120,7 @@ namespace Nop.Services.Catalog
                             else if (attribute.AttributeControlType == AttributeControlType.FileUpload)
                             {
                                 //file upload
-                                Guid.TryParse(value, out Guid downloadGuid);
+                                Guid.TryParse(value, out var downloadGuid);
                                 var download = _downloadService.GetDownloadByGuid(downloadGuid);
                                 if (download != null)
                                 {
@@ -141,7 +134,7 @@ namespace Nop.Services.Catalog
                                     var attributeText = allowHyperlinks ? $"<a href=\"{_webHelper.GetStoreLocation(false)}download/getfileupload/?downloadId={download.DownloadGuid}\" class=\"fileuploadattribute\">{fileName}</a>"
                                         : fileName;
 
-                                    var attributeName = attribute.ProductAttribute.GetLocalized(a => a.Name, _workContext.WorkingLanguage.Id);
+                                    var attributeName = _localizationService.GetLocalized(attribute.ProductAttribute, a => a.Name, _workContext.WorkingLanguage.Id);
 
                                     //encode (if required)
                                     if (htmlEncode)
@@ -153,19 +146,19 @@ namespace Nop.Services.Catalog
                             else
                             {
                                 //other attributes (textbox, datepicker)
-                                formattedAttribute = $"{attribute.ProductAttribute.GetLocalized(a => a.Name, _workContext.WorkingLanguage.Id)}: {value}";
+                                formattedAttribute = $"{_localizationService.GetLocalized(attribute.ProductAttribute, a => a.Name, _workContext.WorkingLanguage.Id)}: {value}";
 
                                 //encode (if required)
                                 if (htmlEncode)
                                     formattedAttribute = WebUtility.HtmlEncode(formattedAttribute);
                             }
 
-                            if (!string.IsNullOrEmpty(formattedAttribute))
-                            {
-                                if (result.Length > 0)
-                                    result.Append(separator);
-                                result.Append(formattedAttribute);
-                            }
+                            if (string.IsNullOrEmpty(formattedAttribute)) 
+                                continue;
+
+                            if (result.Length > 0)
+                                result.Append(separator);
+                            result.Append(formattedAttribute);
                         }
                     }
                     //product attribute values
@@ -173,17 +166,28 @@ namespace Nop.Services.Catalog
                     {
                         foreach (var attributeValue in _productAttributeParser.ParseProductAttributeValues(attributesXml, attribute.Id))
                         {
-                            var formattedAttribute = $"{attribute.ProductAttribute.GetLocalized(a => a.Name, _workContext.WorkingLanguage.Id)}: {attributeValue.GetLocalized(a => a.Name, _workContext.WorkingLanguage.Id)}";
+                            var formattedAttribute = $"{_localizationService.GetLocalized(attribute.ProductAttribute, a => a.Name, _workContext.WorkingLanguage.Id)}: {_localizationService.GetLocalized(attributeValue, a => a.Name, _workContext.WorkingLanguage.Id)}";
 
                             if (renderPrices)
                             {
-                                var attributeValuePriceAdjustment = _priceCalculationService.GetProductAttributeValuePriceAdjustment(attributeValue);
-                                var priceAdjustmentBase = _taxService.GetProductPrice(product, attributeValuePriceAdjustment, customer, out decimal _);
-                                var priceAdjustment = _currencyService.ConvertFromPrimaryStoreCurrency(priceAdjustmentBase, _workContext.WorkingCurrency);
-                                if (priceAdjustmentBase > 0)
-                                    formattedAttribute += $" [+{_priceFormatter.FormatPrice(priceAdjustment, false, false)}]";
-                                else if (priceAdjustmentBase < decimal.Zero)
-                                    formattedAttribute += $" [-{_priceFormatter.FormatPrice(-priceAdjustment, false, false)}]";
+                                if (attributeValue.PriceAdjustmentUsePercentage)
+                                {
+                                    var priceAdjustmentStr = attributeValue.PriceAdjustment.ToString("G29");
+                                    if (attributeValue.PriceAdjustment > decimal.Zero)
+                                        formattedAttribute += $" [+{priceAdjustmentStr}%]";
+                                    else if (attributeValue.PriceAdjustment < decimal.Zero)
+                                        formattedAttribute += $" [{priceAdjustmentStr}%]";
+                                }
+                                else
+                                {
+                                    var attributeValuePriceAdjustment = _priceCalculationService.GetProductAttributeValuePriceAdjustment(attributeValue, customer);
+                                    var priceAdjustmentBase = _taxService.GetProductPrice(product, attributeValuePriceAdjustment, customer, out var _);
+                                    var priceAdjustment = _currencyService.ConvertFromPrimaryStoreCurrency(priceAdjustmentBase, _workContext.WorkingCurrency);
+                                    if (priceAdjustmentBase > decimal.Zero)
+                                        formattedAttribute += $" [+{_priceFormatter.FormatPrice(priceAdjustment, false, false)}]";
+                                    else if (priceAdjustmentBase < decimal.Zero)
+                                        formattedAttribute += $" [-{_priceFormatter.FormatPrice(-priceAdjustment, false, false)}]";
+                                }
                             }
 
                             //display quantity
@@ -198,50 +202,54 @@ namespace Nop.Services.Catalog
                             if (htmlEncode)
                                 formattedAttribute = WebUtility.HtmlEncode(formattedAttribute);
 
-                            if (!string.IsNullOrEmpty(formattedAttribute))
-                            {
-                                if (result.Length > 0)
-                                    result.Append(separator);
-                                result.Append(formattedAttribute);
-                            }
+                            if (string.IsNullOrEmpty(formattedAttribute)) 
+                                continue;
+
+                            if (result.Length > 0)
+                                result.Append(separator);
+                            result.Append(formattedAttribute);
                         }
                     }
                 }
             }
 
             //gift cards
-            if (renderGiftCardAttributes)
+            if (!renderGiftCardAttributes) 
+                return result.ToString();
+
+            if (!product.IsGiftCard) 
+                return result.ToString();
+
+            _productAttributeParser.GetGiftCardAttribute(attributesXml, out var giftCardRecipientName, out var giftCardRecipientEmail, out var giftCardSenderName, out var giftCardSenderEmail, out var _);
+
+            //sender
+            var giftCardFrom = product.GiftCardType == GiftCardType.Virtual ?
+                string.Format(_localizationService.GetResource("GiftCardAttribute.From.Virtual"), giftCardSenderName, giftCardSenderEmail) :
+                string.Format(_localizationService.GetResource("GiftCardAttribute.From.Physical"), giftCardSenderName);
+            //recipient
+            var giftCardFor = product.GiftCardType == GiftCardType.Virtual ?
+                string.Format(_localizationService.GetResource("GiftCardAttribute.For.Virtual"), giftCardRecipientName, giftCardRecipientEmail) :
+                string.Format(_localizationService.GetResource("GiftCardAttribute.For.Physical"), giftCardRecipientName);
+
+            //encode (if required)
+            if (htmlEncode)
             {
-                if (product.IsGiftCard)
-                {
-                    _productAttributeParser.GetGiftCardAttribute(attributesXml, out string giftCardRecipientName, out string giftCardRecipientEmail, out string giftCardSenderName, out string giftCardSenderEmail, out string _);
-
-                    //sender
-                    var giftCardFrom = product.GiftCardType == GiftCardType.Virtual ?
-                        string.Format(_localizationService.GetResource("GiftCardAttribute.From.Virtual"), giftCardSenderName, giftCardSenderEmail) :
-                        string.Format(_localizationService.GetResource("GiftCardAttribute.From.Physical"), giftCardSenderName);
-                    //recipient
-                    var giftCardFor = product.GiftCardType == GiftCardType.Virtual ?
-                        string.Format(_localizationService.GetResource("GiftCardAttribute.For.Virtual"), giftCardRecipientName, giftCardRecipientEmail) :
-                        string.Format(_localizationService.GetResource("GiftCardAttribute.For.Physical"), giftCardRecipientName);
-
-                    //encode (if required)
-                    if (htmlEncode)
-                    {
-                        giftCardFrom = WebUtility.HtmlEncode(giftCardFrom);
-                        giftCardFor = WebUtility.HtmlEncode(giftCardFor);
-                    }
-
-                    if (!string.IsNullOrEmpty(result.ToString()))
-                    {
-                        result.Append(separator);
-                    }
-                    result.Append(giftCardFrom);
-                    result.Append(separator);
-                    result.Append(giftCardFor);
-                }
+                giftCardFrom = WebUtility.HtmlEncode(giftCardFrom);
+                giftCardFor = WebUtility.HtmlEncode(giftCardFor);
             }
+
+            if (!string.IsNullOrEmpty(result.ToString()))
+            {
+                result.Append(separator);
+            }
+
+            result.Append(giftCardFrom);
+            result.Append(separator);
+            result.Append(giftCardFor);
+
             return result.ToString();
         }
+
+        #endregion
     }
 }

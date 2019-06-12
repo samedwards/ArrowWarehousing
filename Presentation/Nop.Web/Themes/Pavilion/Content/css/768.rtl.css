@@ -21,11 +21,6 @@
 .downloadable-products-page .data-table td:first-child {
 	display: none !important; /*hides counter*/
 }
-.reward-points-history .data-table col:first-child,
-.reward-points-history .data-table th:first-child,
-.reward-points-history .data-table td:first-child {
-	display: none !important; /*hides counter*/
-}
 .return-request-page col:first-child,
 .return-request-page th:first-child,
 .return-request-page td:first-child {
@@ -538,6 +533,9 @@ div.rental-price {
 }
 .write-review form {
 	padding: 30px 60px;
+}
+.write-review .message-error {
+	padding: 0;
 }
 
 /* WISHLIST & COMPARE LIST */

@@ -1,4 +1,4 @@
-namespace Nop.Core.Configuration
+﻿namespace Nop.Core.Configuration
 {
     public partial class ExternalConfig
     {
@@ -7,5 +7,6 @@ namespace Nop.Core.Configuration
         public string DearApplicationkey { get; set; }
 
         public string MailchimpApiKey { get; set; }
+        public string PricingTier { get; set; }
     }
 }

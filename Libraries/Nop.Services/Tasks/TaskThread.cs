@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Net;
 using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using Nop.Core;
 using Nop.Core.Domain.Tasks;
 using Nop.Core.Infrastructure;
@@ -17,10 +18,10 @@ namespace Nop.Services.Tasks
     {
         #region Fields
 
+        private static readonly string _scheduleTaskUrl;
+        private readonly Dictionary<string, string> _tasks;
         private Timer _timer;
         private bool _disposed;
-        private readonly Dictionary<string, string> _tasks;
-        private static readonly string _scheduleTaskUrl;
 
         #endregion
 
@@ -29,8 +30,7 @@ namespace Nop.Services.Tasks
         static TaskThread()
         {
             var storeContext = EngineContext.Current.Resolve<IStoreContext>();
-            
-            _scheduleTaskUrl = storeContext.CurrentStore.Url + TaskManager.ScheduleTaskPath;
+            _scheduleTaskUrl = $"{storeContext.CurrentStore.Url}{NopTaskDefaults.ScheduleTaskPath}";
         }
 
         internal TaskThread()
@@ -55,37 +55,30 @@ namespace Nop.Services.Tasks
                 //create and send post data
                 var postData = new NameValueCollection
                 {
-                    {"taskType", taskType}
+                    { "taskType", taskType }
                 };
 
-                var success = false;
-                while (!success) {
-                    Thread.Sleep(1000);
-                    success = UploadValues(postData);
+                try
+                {
+                    using (var client = new WebClient())
+                    {
+                        client.UploadValues(_scheduleTaskUrl, postData);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    var _serviceScopeFactory = EngineContext.Current.Resolve<IServiceScopeFactory>();
+
+                    using (var scope = _serviceScopeFactory.CreateScope())
+                    {
+                        // Resolve
+                        var logger = scope.ServiceProvider.GetRequiredService<ILogger>();
+                        logger.Error(ex.Message, ex);
+                    }
                 }
             }
 
             IsRunning = false;
-        }
-
-        private static bool UploadValues(NameValueCollection postData)
-        {
-            try
-            {
-                using (var client = new WebClient())
-                {
-                    client.UploadValues(_scheduleTaskUrl, postData);
-                }
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                var logger = EngineContext.Current.Resolve<ILogger>();
-                logger.Error(ex.Message, ex);
-
-                return false;
-            }
         }
 
         private void TimerHandler(object state)
@@ -111,14 +104,14 @@ namespace Nop.Services.Tasks
         /// </summary>
         public void Dispose()
         {
-            if (_timer != null && !_disposed)
+            if (_timer == null || _disposed) 
+                return;
+
+            lock (this)
             {
-                lock (this)
-                {
-                    _timer.Dispose();
-                    _timer = null;
-                    _disposed = true;
-                }
+                _timer.Dispose();
+                _timer = null;
+                _disposed = true;
             }
         }
 
@@ -129,7 +122,7 @@ namespace Nop.Services.Tasks
         {
             if (_timer == null)
             {
-                _timer = new Timer(TimerHandler, null, Interval, Interval);
+                _timer = new Timer(TimerHandler, null, InitInterval, Interval);
             }
         }
 
@@ -155,6 +148,11 @@ namespace Nop.Services.Tasks
         public int Seconds { get; set; }
 
         /// <summary>
+        /// Get or set the interval before timer first start 
+        /// </summary>
+        public int InitSeconds { get; set; }
+
+        /// <summary>
         /// Get or sets a datetime when thread has been started
         /// </summary>
         public DateTime StartedUtc { get; private set; }
@@ -175,6 +173,21 @@ namespace Nop.Services.Tasks
                 var interval = Seconds * 1000;
                 if (interval <= 0)
                     interval = int.MaxValue;
+                return interval;
+            }
+        }
+
+        /// <summary>
+        /// Gets the due time interval (in milliseconds) at which to begin start the task
+        /// </summary>
+        public int InitInterval
+        {
+            get
+            {
+                //if somebody entered less than "0" seconds, then an exception could be thrown
+                var interval = InitSeconds * 1000;
+                if (interval <= 0)
+                    interval = 0;
                 return interval;
             }
         }

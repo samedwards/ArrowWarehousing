@@ -9,7 +9,7 @@
 <input type="hidden" value="@isRtl.ToString().ToLowerInvariant()" id="isRtlEnabled" />
 
 <ul class="top-menu">
-    @await Component.InvokeAsync("Widget", new { widgetZone = "header_menu_before" })
+    @await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.HeaderMenuBefore })
 	
     @if (Model.DisplayHomePageMenuItem)
     {
@@ -56,7 +56,7 @@
         <li><a href="@Url.RouteUrl("ContactUs")">@T("ContactUs")</a></li>
     }
 
-    @await Component.InvokeAsync("Widget", new { widgetZone = "header_menu_after" })
+    @await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.HeaderMenuAfter })
 </ul>
 
 <script type="text/javascript" asp-location="Footer">

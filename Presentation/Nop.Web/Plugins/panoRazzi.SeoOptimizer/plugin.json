@@ -1,0 +1,11 @@
+﻿{
+	"Group": "Widgets",
+	"FriendlyName": "SEO Optimizer",
+	"SystemName": "panoRazzi.SeoOptimizer",
+	"Version": "1.50",
+	"SupportedVersions": [ "4.10" ],
+	"Author": "pro nopCommerce (https://www.pronopcommerce.com)",
+	"DisplayOrder": 1,
+	"FileName": "panoRazzi.SeoOptimizer.dll",
+	"Description": "Help corrects SEO issues in nopCommerce"
+}

@@ -11,47 +11,20 @@
 <div class="page checkout-page order-completed-page">
     @if (!Model.OnePageCheckoutEnabled)
     {
-        @await Component.InvokeAsync("CheckoutProgress",  new { step = CheckoutProgressStep.Complete })
+        @await Component.InvokeAsync("CheckoutProgress", new { step = CheckoutProgressStep.Complete })
     }
     <div class="page-title">
         <h1>@T("Checkout.ThankYou")</h1>
     </div>
     <div class="page-body checkout-data">
-        @await Component.InvokeAsync("Widget", new { widgetZone = "checkout_completed_top", additionalData = Model.OrderId })
+        @await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.CheckoutCompletedTop, additionalData = Model })
         <div class="section order-completed">
             <div class="title">
                 <strong>@T("Checkout.YourOrderHasBeenSuccessfullyProcessed")</strong>
             </div>
             <div class="details">
                 <div class="order-number">
-                    <span>Thanks for your purchase!</span>
-                    @if (!Model.HasPaid)
-                    {
-                        <br/>
-                        <br/>
-                        <span>Please make bank transfer payment to:</span>
-                        <br/>
-                        <br/>
-                        <span>12-3119- 0195128-00</span>
-                        <br/>
-                        <br/>
-                        <span>Warwick Edwards Services Limited</span>
-                        <br/>
-                        <span>52 Anvil Road</span>
-                        <br/>
-                        <span>Silverdale, Auckland 0932</span>
-                        <br/>
-                        <br/>
-                        <span>Please quote your order number @Model.CustomOrderNumber as reference on your payment.</span>
-                    }
-                    <br />
-                    <br />
-                    <span>A tax invoice will be emailed to you shortly. When we dispatch your goods, you will receive a tracking email.</span>
-                    <br />
-                    <br />
-                    <span>If you have any questions please contact us at sales@arrowwarehousing.co.nz</span>
-                    <br />
-                    <br />
+                    <strong>@T("Checkout.OrderNumber"): @Model.CustomOrderNumber</strong>
                 </div>
                 <div class="details-link">
                     <a href="@Url.RouteUrl("OrderDetails", new { orderID = Model.OrderId })">@T("Checkout.PlacedOrderDetails")</a>
@@ -61,6 +34,24 @@
                 <input type="button" value="@T("Checkout.ThankYou.Continue")" class="button-1 order-completed-continue-button" onclick="setLocation('@Url.RouteUrl("HomePage")')" />
             </div>
         </div>
-        @await Component.InvokeAsync("Widget", new { widgetZone = "checkout_completed_bottom", additionalData = Model.OrderId })
+        @await Component.InvokeAsync("Widget", new { widgetZone = PublicWidgetZones.CheckoutCompletedBottom, additionalData = Model })
     </div>
 </div>
+
+<script src="https://apis.google.com/js/platform.js?onload=renderOptIn" async defer></script>
+
+<script>
+  window.renderOptIn = function() {
+    window.gapi.load('surveyoptin', function() {
+      window.gapi.surveyoptin.render(
+        {
+          // REQUIRED FIELDS
+          "merchant_id": "127847802",
+          "order_id": "@Model.OrderId",
+          "email": "@Model.CustomerEmail",
+          "delivery_country": "NZ",
+          "estimated_delivery_date": "@Model.EstimatedDeliveryDate.AddDays(7).ToString("yyyy-MM-dd")",
+        });
+    });
+  }
+</script>
